@@ -21,8 +21,8 @@ def hello_monkey():
     """Respond to incoming requests."""
     resp = twilio.twiml.Response()
     resp.say("It's time to call Jona")
-        # Dial (310) 555-1212 - connect that number to the incoming caller.
-        resp.dial("+16178432883")
+    # Dial (310) 555-1212 - connect that number to the incoming caller.
+    resp.dial("+16178432883")
 
     return str(resp)
 
