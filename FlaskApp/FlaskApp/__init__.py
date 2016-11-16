@@ -1,10 +1,10 @@
-from flask import Flask
+from flask import Flask, request, send_from_directory
 import redis
 import twilio.twiml
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/hi")
 def hello():
     return "Hello, I love Digital Ocean!"
 
@@ -14,6 +14,14 @@ def redisexample():
     r.set('key', 'special_value')
 
     return r.get('key')
+
+@app.route("/")
+def sendhtmltest():
+	return app.send_static_file('landing.html')
+
+@app.route('/registerNewUser/', methods=['GET', 'POST'])
+def registerNewUser():
+	print request.form
 
 
 @app.route("/callpaul", methods=['GET', 'POST'])
