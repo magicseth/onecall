@@ -15,6 +15,13 @@ def redisexample():
     return r.get('key')
 
 
+@app.route("/callpaul", methods=['GET', 'POST'])
+def hello_monkey():
+    """Respond to incoming requests."""
+    resp = twilio.twiml.Response()
+    resp.say("It's time to call Paul Ryan")
+
+    return str(resp)
 
 
 
