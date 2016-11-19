@@ -45,11 +45,16 @@
           color: #666;
         }
         
-        
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+          }
+
         .main { padding-top: 5%; left: 30px}
         
-        h1 {font-size: 48px; margin-top: 0px;}  
-        h2 {font-size: 30px; margin-bottom: 0px;}
+        h1 {font-family: sans-serif; font-size: 48px; margin-top: 0px;}  
+        h2 {font-family: sans-serif; font-size: 30px; margin-bottom: 0px;}
                         
         body::after {
           content: "";
@@ -60,7 +65,7 @@
           left: 0;
           bottom: 0;
           right: 0;
-          position: absolute;
+          position: fixed;
           z-index: -1;
         }
       </style>
@@ -69,21 +74,23 @@
     <div class="center main">
       <h2>Take time for</h2>
       <h1>One Call Today</h1>
-      <form action="registerNewUser/" method="Post">
+      <form action="registerNewUser" method="Post">
         <table class="center">
-          <tr><td><input class="inp" type="text" name="phonenumber" placeholder="Your Phone Number" required></td></tr>
-          <tr><td><input class="inp" type="text" name="zipcode" placeholder="Your Zip Code" required></td></tr>
+          <tr><td><input class="inp" type="number" name="phonenumber" placeholder="Your Phone Number" required min="1000000000" max="9999999999"></td></tr>
+          <tr><td><input class="inp" type="number" name="zipcode" placeholder="Your Zip Code" required min="10000" max="99999"></td></tr>
           <tr><td>
             <select class="drop" name="hour">
               <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8" selected=rue>8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
             </select> <span style="font-size: 20px">:</span>
             <select class="drop" name="minute">
-              <option value="0">00</option><option value="5">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+              <option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
             </select>
             <select class="drop" name="ampm">
               <option value="am">AM</option><option value="pm">PM</option>
             </select></td></tr>
           <tr><td><input class="btn" type="submit" value="Make a Difference!"></td></tr>
+          <tr><td><a href="../flush">DEBUG: Flush Database</a></td></tr>
+          <tr><td><a href="../db">DEBUG: Display Database</a></td></tr>
         </table>
       </form>
     </div>
