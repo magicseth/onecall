@@ -2,73 +2,9 @@
   <head>
     <meta http-equiv="Content-Type" charset="UTF-8" name="viewport"/>
       <title>OneCall Landing</title>
-      <!--<link rel="stylesheet" href="./css/main.css" type="text/css" /><!-- note HTTPS dependent on rewrite rule in /etc/httpd/conf.d/mitra.d on path.net-->
+      <link rel="stylesheet" href="./static/onecall.css" type="text/css" />
       <!--<script src="prototype.js"></script>-->
       <!--<script src="lumeter.js"></script>-->
-      <style>
-        .drop{
-          font-size: medium;
-          color: #666;
-          background-color: #fff;
-          -webkit-appearance: none;
-          padding: 8px 10px;
-          margin-bottom: 5px;
-          margin-top: 5px;
-          padding-right: 1en;}
-        
-        .center {
-          margin: auto;
-          width: 50%;
-          text-align: center;
-          padding: 10px;}
-        
-        .btn {
-          border: 1px solid;
-          color: #fff;
-          border-color: #24a;
-          background-color: #24a;
-          border-radius: 4px;
-          min-width: 106px;
-          width: auto;
-          padding-left: 16px;
-          padding-right: 16px;
-          padding-top: 11px !important;
-          padding-bottom: 11px !important;
-          font-size: 18px !important;
-        }
-        
-        .inp {
-          border: 1px solid #aaa;
-          padding: 8px 10px;
-          width: 100%;
-          font-size: 20px;
-          color: #666;
-        }
-        
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-          }
-
-        .main { padding-top: 5%; left: 30px}
-        
-        h1 {font-family: sans-serif; font-size: 48px; margin-top: 0px;}  
-        h2 {font-family: sans-serif; font-size: 30px; margin-bottom: 0px;}
-                        
-        body::after {
-          content: "";
-          background: url('../static/images/child2.jpeg') no-repeat center center;
-          background-size:cover;
-          opacity: .2;
-          top: 0;
-          left: 0;
-          bottom: 0;
-          right: 0;
-          position: fixed;
-          z-index: -1;
-        }
-      </style>
   </head>
   <body id="body">
     <div class="center main">
@@ -89,10 +25,9 @@
               <option value="am">AM</option><option value="pm">PM</option>
             </select></td></tr>
           <tr><td><input class="btn" type="submit" value="Make a Difference!"></td></tr>
-          <tr><td><a href="../flush">DEBUG: Flush Database</a></td></tr>
-          <tr><td><a href="../db">DEBUG: Display Database</a></td></tr>
         </table>
       </form>
     </div>
+    <div class="debug"><a href="../flush">DEBUG: Flush Database</a> <a href="../db">DEBUG: Display Database</a> <a href="../findcallers">DEBUG: Simulate Cron</a></div>
   </body>
 </html>
