@@ -58,6 +58,7 @@ def registerNewUser():
 	ph = request.form.get('phonenumber')
 	try:
 		delta = ZipCodeDatabase()[zc].timezone
+		# ZipCode object fields: zip, city, state, longitude, latitude, timezone, dst
 	except:
 		delta=0 # XXX This is invalid, as we won't call them on the right timezone
 		# raise UserWarning('Invalid Zip') # do we need to make an actual error class?
