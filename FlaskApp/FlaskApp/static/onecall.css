@@ -30,6 +30,7 @@
 }
 
 .inp {
+  border-radius: 4px;
   border: 1px solid #aaa;
   padding: 8px 10px;
   width: 100%;

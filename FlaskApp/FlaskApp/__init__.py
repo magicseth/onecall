@@ -15,13 +15,13 @@ def updatedb():
 				for row in csv_data:
 					[r.hset(row[1],row[i*2],row[i*2+1]) for i in range(1,len(row)/2)]
 			r.hset('refresh',hsh, 0)
-	for pair in ['arenas',]:
-		if r.hget('refresh',pair) !=0:
-			with open('./'+pair+'.csv') as f:
+	for sets in ['arenas',]:
+		if r.hget('refresh',sets) !=0:
+			with open('./'+sets+'.csv') as f:
 				csv_data = csv.reader(f)
 				for row in csv_data:
-					r.set(row[1],row[3])
-			r.hset('refresh',pair, 0)
+					[r.sadd(row[1],row[i+2]) for i in range(1,len(row)-2)]
+			r.hset('refresh',sets, 0)
 	return
 	
 
