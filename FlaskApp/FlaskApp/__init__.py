@@ -104,6 +104,7 @@ def text_seth():
 	client = TwilioRestClient(account_sid, auth_token)
 	message = client.messages.create(to="+16177107496", from_="+16179256394",
                                      body="Hello there!")
+	return "success"
 
 
 
