@@ -47,17 +47,14 @@ def printall():
     conn = connectDB()
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    print cursor.fetchall()
-    cursor.execute("SELECT * FROM caller;")
-    print cursor.fetchall()
-    cursor.execute("SELECT * FROM campaign;")
-    print cursor.fetchall()
-    cursor.execute("SELECT * FROM target;")
-    print cursor.fetchall()
-    cursor.execute("SELECT * FROM region;")
-    print cursor.fetchall()
-    cursor.execute("SELECT * FROM call;")
-    print cursor.fetchall()
+    tables = cursor.fetchall()
+    for t in tables:
+        name = t[0]
+        if name != 'sqlite_sequence':
+            print name
+            cursor.execute("SELECT * FROM "+name)
+            print [description[0] for description in cursor.description]
+            print cursor.fetchall()
 
     disconnectDB()
     return 

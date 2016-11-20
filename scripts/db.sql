@@ -32,6 +32,7 @@ CREATE TABLE `region` (
 
 CREATE TABLE `call` (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  timestamp timestamp NOT NULL,
   callerid integer NOT NULL REFERENCES caller(id),
   campaignid integer NOT NULL REFERENCES campaign(id),
   targetid integer NOT NULL REFERENCES target(id)
