@@ -1,23 +1,32 @@
 from flask import Flask, request, send_from_directory, redirect
 from pyzipcode import ZipCodeDatabase
+from twilio.rest import TwilioRestClient
 import csv
 import redis
 import twilio.twiml
+import os
 
 app = Flask(__name__)
 r = redis.Redis('localhost')
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+execfile(os.path.join(dir_path, 'SECRETS.py'))
+
+
+account_sid = os.environ['TWILIO_SID']
+auth_token = os.environ['TWILIO_AUTH']
 
 def updatedb():
 	for hsh in ['issues', 'targets']:
 		if r.hget('refresh',hsh) !=0:
-			with open('./'+hsh+'.csv') as f:
+			with open(dir_path+'/'+hsh+'.csv') as f:
 				csv_data = csv.reader(f)
 				for row in csv_data:
 					[r.hset(row[1],row[i*2],row[i*2+1]) for i in range(1,len(row)/2)]
 			r.hset('refresh',hsh, 0)
 	for sets in ['arenas',]:
 		if r.hget('refresh',sets) !=0:
-			with open('./'+sets+'.csv') as f:
+			with open(dir_path+'/'+sets+'.csv') as f:
 				csv_data = csv.reader(f)
 				for row in csv_data:
 					[r.sadd(row[1],row[i+2]) for i in range(1,len(row)-2)]
@@ -90,6 +99,13 @@ def hello_monkey():
     resp.dial("+16178432883")
     return str(resp)
 
+@app.route("/textseth", methods=['GET'])
+def text_seth():
+	"Send a text message to seth"
+	client = TwilioRestClient(account_sid, auth_token)
+	message = client.messages.create(to="+16177107496", from_="+16179256394",
+                                     body="Hello there!")
+	return "success"
 
 
 
