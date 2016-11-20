@@ -7,9 +7,11 @@ import os
 
 app = Flask(__name__)
 r = redis.Redis('localhost')
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+execfile(os.path.join(dir_path, 'SECRETS.sh'))
 
 def updatedb():
-	dir_path = os.path.dirname(os.path.realpath(__file__))
 	for hsh in ['issues', 'targets']:
 		if r.hget('refresh',hsh) !=0:
 			with open(dir_path+hsh+'.csv') as f:
