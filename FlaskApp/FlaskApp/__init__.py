@@ -1,9 +1,9 @@
 from flask import Flask, request, send_from_directory, redirect
 from pyzipcode import ZipCodeDatabase
 from twilio.rest import TwilioRestClient
-from oct_utils import sqlSend, connectDB, disconnectDB, insertR, printall
-import oct_constants
-from oct_local import dir_path
+from oct_utils import sqlSend, connectDB, disconnectDB, insertR, printall, find
+from oct_constants import NULLNONE, ONEORNONE
+from oct_local import dir_path, db_path
 import csv
 # import redis XXXREDIS
 import twilio.twiml
@@ -39,7 +39,7 @@ def updatedb():
 
 @app.route("/")
 def populatelanding():
-	print printall()
+	printall()
 	return app.send_static_file('landing.html')
 
 @app.route("/db")

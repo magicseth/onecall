@@ -5,7 +5,8 @@
 # from datetime import datetime, date
 import sqlite3
 import os
-import oct_constants
+from oct_constants import FINDERR, NULLNONE, ONEORNONE, ONLYONE
+from oct_jsonextended import JSONtoSqlText
 from oct_local import db_path
 
 # import cherrypy
@@ -46,9 +47,20 @@ def printall():
     conn = connectDB()
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    res = cursor.fetchall()
+    print cursor.fetchall()
+    cursor.execute("SELECT * FROM caller;")
+    print cursor.fetchall()
+    cursor.execute("SELECT * FROM campaign;")
+    print cursor.fetchall()
+    cursor.execute("SELECT * FROM target;")
+    print cursor.fetchall()
+    cursor.execute("SELECT * FROM region;")
+    print cursor.fetchall()
+    cursor.execute("SELECT * FROM call;")
+    print cursor.fetchall()
+
     disconnectDB()
-    return res
+    return 
 
 def sqlSend(sql, parms=None):
     """
@@ -112,7 +124,7 @@ def insertR(table, r):
         "campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?)",
         "target": "INSERT INTO target VALUES (NULL,?,?,?,?)",
         "region": "INSERT INTO region VALUES (NULL,?,?)",
-        "callog": "INSERT INTO callog VALUES (NULL,?,?,?)",
+        "call": "INSERT INTO call VALUES (NULL,?,?,?)",
     }
     sqlSend(insertstr[table], r)  # Can throw sqlite3.IntegrityError if doesnt match constraint in table structure
 
@@ -146,7 +158,6 @@ def sqlpair(key,val):
     Return a pair of key and value that depends on the type of val and key,
     parmfields should be specified if its possible the key could be in parmfields (e.g. in Record.find)
     """
-    from misc.jsonextended import JSONtoSqlText
     # Note this next one is problematic since sqlite3 bug with list as a parameter and cant pass as string or tuple either
     if isinstance(val,(tuple,list,set)):
         return key+" IN ("+','.join(['?']*len(val))+")",  [ v.id() if isinstance(v,Record) else v for v in val ]
@@ -187,6 +198,7 @@ def findAndCheckNull(sql, parm, where, nullbehavior):
     Subclassed by Deal to handle subtypes
     """
     rr = sqlFetch(sql,parm)
+    disconnectDB()
     return checkNull(rr, where, nullbehavior)
 
 def checkNull(rr, where, nullbehavior):
@@ -236,8 +248,24 @@ def sqlFetch(sql, parms=None):
     returns array (possibly empty) of Rows (each of which behaves like a dict) as supplied by fetchall
     """
     sqlSend(sql, parms)  # Will always return -1 on SELECT
-    rr = db.curs.fetchall()
+    c = connectDB()
+    rr = c.cursor().fetchall()
     return rr
+
+def splitw(string):
+    """
+    Utility function to split a string, allowing for it to be None, or just one word
+    Always returns a 2-element array, although both, or last element may be None
+    """
+    if string is None:
+        return None,None
+    ww = string.rstrip().lstrip().split(None,1)   # This was ' ', changed to None to treat multiple spaces as a word delimiter same as single
+    if len(ww) == 0:
+        return "",None
+    if len(ww) == 1:
+        return ww[0],None
+    return ww[0],ww[1]
+
 
 
 # # ******** GENERIC ROUTINES NOT IN CLASSES ****************
@@ -392,19 +420,6 @@ def sqlFetch(sql, parms=None):
 #     raise e
 
 
-# def splitw(string):
-#     """
-#     Utility function to split a string, allowing for it to be None, or just one word
-#     Always returns a 2-element array, although both, or last element may be None
-#     """
-#     if string is None:
-#         return None,None
-#     ww = string.rstrip().lstrip().split(None,1)   # This was ' ', changed to None to treat multiple spaces as a word delimiter same as single
-#     if len(ww) == 0:
-#         return "",None
-#     if len(ww) == 1:
-#         return ww[0],None
-#     return ww[0],ww[1]
 
 # def realipaddr():
 #     if "X-Forwarded-For" in cherrypy.request.headers:
