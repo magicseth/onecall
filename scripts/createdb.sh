@@ -1,0 +1,1 @@
+sqlite3 onecall.sqlt < db.sql

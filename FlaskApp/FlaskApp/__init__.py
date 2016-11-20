@@ -6,11 +6,14 @@ import redis
 import twilio.twiml
 import os
 
+import sqlite3
+
 app = Flask(__name__)
 r = redis.Redis('localhost')
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 execfile(os.path.join(dir_path, 'SECRETS.py'))
+
 
 
 account_sid = os.environ['TWILIO_SID']
@@ -36,7 +39,7 @@ def updatedb():
 
 @app.route("/")
 def populatelanding():
-	updatedb() # XXX This should not happen here, but is placed to trigger frequently for now
+	#updatedb() # XXX This should not happen here, but is placed to trigger frequently for now
 	return app.send_static_file('landing.html')
 
 @app.route("/db")
@@ -63,6 +66,8 @@ def registerNewUser():
 	"""
 	This function brings in 
 	"""
+	conn = sqlite3.connect(os.path.join(dir_path, 'onecall.sqlt'))
+	c = conn.cursor()
 	zc = request.form.get('zipcode')
 	ph = request.form.get('phonenumber')
 	try:
@@ -70,9 +75,12 @@ def registerNewUser():
 	except:
 		delta=0 # XXX This is invalid, as we won't call them on the right timezone
 		# raise UserWarning('Invalid Zip') # do we need to make an actual error class?
-	time = str(int(request.form.get('hour'))-delta)+":"+request.form.get('minute')+" "+request.form.get('ampm') # use the zipcode to change the time to GMT
-	r.hset(ph,'zipcode',zc)
-	r.hset(ph,'calltime',time)
+	# time = str(int(request.form.get('hour'))-delta)+":"+request.form.get('minute')+" "+request.form.get('ampm') # use the zipcode to change the time to GMT
+	
+	c.execute("INSERT OR REPLACE INTO callers (phone, zipcode) values(?,?)", (ph,zc))
+    #    #format(tn='callers', pn='phone', phonee=ph, z='zipcode',zipcode=zc))
+	conn.commit()
+	conn.close()
 	return redirect('./static/thanks.html')
 
 @app.route("/findcallers")
