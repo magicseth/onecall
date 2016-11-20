@@ -3,21 +3,23 @@ from pyzipcode import ZipCodeDatabase
 import csv
 import redis
 import twilio.twiml
+import os
 
 app = Flask(__name__)
 r = redis.Redis('localhost')
 
 def updatedb():
+	dir_path = os.path.dirname(os.path.realpath(__file__))
 	for hsh in ['issues', 'targets']:
 		if r.hget('refresh',hsh) !=0:
-			with open('./'+hsh+'.csv') as f:
+			with open(dir_path+hsh+'.csv') as f:
 				csv_data = csv.reader(f)
 				for row in csv_data:
 					[r.hset(row[1],row[i*2],row[i*2+1]) for i in range(1,len(row)/2)]
 			r.hset('refresh',hsh, 0)
 	for sets in ['arenas',]:
 		if r.hget('refresh',sets) !=0:
-			with open('./'+sets+'.csv') as f:
+			with open(dir_path+sets+'.csv') as f:
 				csv_data = csv.reader(f)
 				for row in csv_data:
 					[r.sadd(row[1],row[i+2]) for i in range(1,len(row)-2)]
