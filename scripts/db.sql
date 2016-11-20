@@ -1,8 +1,38 @@
 
-CREATE TABLE IF NOT EXISTS `callers` (
-  `phone` varchar(25) NOT NULL,
-  `zipcode` varchar(50) DEFAULT NULL,
-  `calltime` varchar(50) DEFAULT NULL,
-  `active` varchar(50) DEFAULT NULL
+CREATE TABLE `caller` (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  phone varchar(25),
+  zipcode varchar(25),
+  calltime time,
+  active varchar(50)
 ) ;
 
+CREATE TABLE `campaign` (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  message text,
+  startdate date,
+  enddate date,
+  calltarget integer,
+  arenas text
+) ;
+
+CREATE TABLE `target` (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  name varchar(255),
+  phone varchar(25),
+  bio text,
+  arena varchar(50)
+) ;
+
+CREATE TABLE `region` (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  zipcode varchar(25),
+  targetid integer NOT NULL REFERENCES target(id)
+) ;
+
+CREATE TABLE `call` (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  callerid integer NOT NULL REFERENCES caller(id),
+  campaignid integer NOT NULL REFERENCES campaign(id),
+  targetid integer NOT NULL REFERENCES target(id)
+) ;
