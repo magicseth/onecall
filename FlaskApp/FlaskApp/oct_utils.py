@@ -84,29 +84,6 @@ def flatten2d(rr):
     return [ leaf for tree in rr for leaf in tree ]  # Super obscure but works and fast
     # See  http://stackoverflow.com/questions/952914/making-a-flat-list-out-of-list-of-lists-in-python/952952#952952
 
-def findAndCheckNull(sql, parm, where, nullbehavior):
-    """
-    Do a SQL SELECT and
-    Handle the generic nullbehavior based on the length of the retrieved obj
-    sql is a SQL SELECT string to execute
-    parm is array of parameters to sql
-    where is the inner part of an error message
-    nullbehavior controls behavior if field doesn't point to anything
-    NULLERR Err 52; NULLNONE - return [ ]  -
-    ONLYONE says only ok if exactly one found, and return that err 63 if >1 or 52 if none
-    ONEORNONE says return obj if found, or None if not, err 63 if >1
-    FINDERR - Err 51 if found
-    All of these errors should be caught before the user sees them - 51 is (except in createNewAgent),
-    52 and 63 still need tracing
-
-    ERR 51,52,63
-
-    Subclassed by Deal to handle subtypes
-    """
-    rr = sqlFetch(sql,parm)
-    disconnect_db()
-    return checkNull(rr, where, nullbehavior)
-
 def checkNull(rr, where, nullbehavior):
     """
     Return appropriately based on nullbehavior and size of rr

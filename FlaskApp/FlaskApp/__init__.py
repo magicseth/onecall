@@ -108,10 +108,10 @@ def sqlSend(sql, parms=None):
     while retrytime < 60: # Allows up to about 60 seconds of delay
         try:
             if parms is None:
-                db.cursor().execute(sql)
+                curs = db.execute(sql)
                 db.commit()
             else:  # parms supplied as array
-                db.cursor().execute(sql, parms)
+                curs = db.execute(sql, parms)
                 db.commit()
         except sqlite3.OperationalError as e:
             if 'database is locked' not in str(e):
@@ -121,7 +121,7 @@ def sqlSend(sql, parms=None):
         except Exception as e:
             break   # Drop out of loop and raise error
         else: # No exception
-        	return db.cursor().rowcount
+        	return curs
     raise e
 
 def sqlFetch(sql, parms=None):
@@ -134,9 +134,8 @@ def sqlFetch(sql, parms=None):
 
     returns array (possibly empty) of Rows (each of which behaves like a dict) as supplied by fetchall
     """
-    sqlSend(sql, parms)  # Will always return -1 on SELECT
-    db = get_db()
-    rr = db.cursor().fetchall()
+    curs = sqlSend(sql, parms)  # Will always return -1 on SELECT
+    rr = curs.fetchall()
     return rr
 
 def find(table, nullbehavior, _skipNone=False, **kwargs):
@@ -177,15 +176,15 @@ def findAndCheckNull(sql, parm, where, nullbehavior):
 
 @app.route("/")
 def populatelanding():
-	printall()
 	return app.send_static_file('landing.html')
 
-@app.route("/db")
-def dbdump():
+@app.route("/dump")
+def dumpdb():
 	"""
 	This DANGEROUS function prints to the browser window the entirety of the redis database
 	"""
-	return str(printall())
+	print printall()
+	return redirect('/')
 
 @app.route("/flush")
 def flushdb():
@@ -219,6 +218,7 @@ def findcallers():
 	This function is called by the cron to look for callers.
 	"""
 	now = "13:00 am"
+	print find('caller', NULLNONE, id='1')
 	# XXXREDIS
 	# callers = [n for n in r.keys() if r.type(n)=='hash' and r.hget(n,'calltime')==now]
 	# pairs = [[c,r.get(r.hget(c,'zipcode'))] for c in callers if r.get(r.hget(c,'zipcode'))]
