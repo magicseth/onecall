@@ -7,7 +7,7 @@ import sqlite3
 import os
 from oct_constants import FINDERR, NULLNONE, ONEORNONE, ONLYONE
 from oct_jsonextended import JSONtoSqlText
-from oct_local import db_path
+from oct_local import dir_path
 
 # import cherrypy
 # from strings import AppStringsLANG, permStringsLANG, permStringsVerboseLANG
@@ -20,84 +20,7 @@ from oct_local import db_path
 # import logging
 # logger = logging.getLogger('lumeter')
 
-_connection = None
 
-def connectDB():
-    global _connection
-    if not _connection:
-        databasefile = os.path.join(db_path, 'onecall.sqlt')
-        # The sqlite3.PARSE_DECLTYPES is so that a timestamp column will get parsed correctly.
-        _connection = sqlite3.connect(databasefile, detect_types=sqlite3.PARSE_DECLTYPES)
-        _connection.execute('pragma foreign_keys = on')
-        # Dont wait for operating system http://www.sqlite.org/pragma.html#pragma_synchronous
-        #http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html#pragma-synchronous
-        _connection.execute('pragma synchronous = off')
-        _connection.row_factory = sqlite3.Row
-    return _connection
-
-def disconnectDB():
-    global _connection
-    if _connection:
-        conn = _connection
-        conn.commit()
-        conn.close()
-        _connection = None
-
-def printall():
-    conn = connectDB()
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = cursor.fetchall()
-    for t in tables:
-        name = t[0]
-        if name != 'sqlite_sequence':
-            print name
-            cursor.execute("SELECT * FROM "+name)
-            print [description[0] for description in cursor.description]
-            print cursor.fetchall()
-
-    disconnectDB()
-    return 
-
-def sqlSend(sql, parms=None):
-    """
-    Encapsulate most access to the sql server
-    Send a sql string to a server, with parms if supplied
-
-    sql: sql statement that may contain usual "?" characters
-    parms[]: array or list of parameters to sql
-    ERR: IntegrityError (FOREIGN KEY constraint failed)
-    should catch database is locked errors and delay - may need to catch other errors but watch logs for them
-    """
-    retrytime = 0.001       # Start with 1mS, might be far too short
-    while retrytime < 60: # Allows up to about 60 seconds of delay
-        try:
-            conn = connectDB()
-            if parms is None:
-                conn.cursor().execute(sql)
-            else:  # parms supplied as array
-                conn.cursor().execute(sql, parms)
-        except sqlite3.OperationalError as e:
-            if 'database is locked' not in str(e):
-                break   # Drop out of loop and raise error
-            time.sleep(retrytime)
-            retrytime *= 2          # Try twice as long each iteration
-        except Exception as e:
-            break   # Drop out of loop and raise error
-        else: # No exception
-            return conn.cursor().rowcount
-    raise e
-
-def find(table, nullbehavior, _skipNone=False, **kwargs):
-    """
-    Generic find
-    Searches a sql table, knows about "IS NULL" and tags.
-    """
-    # Preprocess vals
-    keys,val1 = zip(*[sqlpair(key, val) for key,val in kwargs.iteritems() if not (_skipNone and val is None)])
-    vals = flatten2d(val1)
-    sql = "SELECT * FROM %s WHERE %s" % (table, " AND ".join(keys))
-    return findAndCheckNull(sql,vals,"record matches fields", nullbehavior) 
 
 def getOrInsert(table, name, contactinfo, tags):
     """
@@ -110,20 +33,6 @@ def getOrInsert(table, name, contactinfo, tags):
         o = cls.iinsert( name, contactinfo, tags)
     return o
 
-def insertR(table, r):
-    """
-    Standard insert method that uses the insertstr defined in each class
-    call this from iinsert(..<class dependent field list>.) in each class
-    Note - can pass record as parameters and will auto-convert to id.
-    """
-    insertstr = {
-        "caller":"INSERT INTO caller VALUES (NULL,?,?,NULL,NULL)",
-        "campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?)",
-        "target": "INSERT INTO target VALUES (NULL,?,?,?,?)",
-        "region": "INSERT INTO region VALUES (NULL,?,?)",
-        "call": "INSERT INTO call VALUES (NULL,?,?,?)",
-    }
-    sqlSend(insertstr[table], r)  # Can throw sqlite3.IntegrityError if doesnt match constraint in table structure
 
 def idUpdateFields(table, id, _skipNone=False, **kwargs):
     """
@@ -195,7 +104,7 @@ def findAndCheckNull(sql, parm, where, nullbehavior):
     Subclassed by Deal to handle subtypes
     """
     rr = sqlFetch(sql,parm)
-    disconnectDB()
+    disconnect_db()
     return checkNull(rr, where, nullbehavior)
 
 def checkNull(rr, where, nullbehavior):
@@ -233,21 +142,7 @@ def checkNull(rr, where, nullbehavior):
     # Cases where return an array
     return rr
 
-def sqlFetch(sql, parms=None):
-    """
-    Encapsulate most access to the sql server
-    Send a sql string to a server, with parms if supplied
 
-    sql: sql statement that may contain usual "?" characters
-    verbose: set to true to print or log sql executed - note some functions turn verbose on if cls.debug = True
-    parms[]: array or list of parameters to sql
-
-    returns array (possibly empty) of Rows (each of which behaves like a dict) as supplied by fetchall
-    """
-    sqlSend(sql, parms)  # Will always return -1 on SELECT
-    c = connectDB()
-    rr = c.cursor().fetchall()
-    return rr
 
 def splitw(string):
     """
@@ -396,14 +291,14 @@ def splitw(string):
 #     return " ".join([("%s:%s" % (i, unicode(r[i]).replace('\n', '\\n'))) for i in r.keys()])
 
 
-# def saferConnectDB():
+# def saferconnect_db():
 #     """
 #     Encapsulate connection to DB through a process that can delay if locked.
 #     """
 #     retrytime = 0.001       # Start with 1mS, might be far too short
 #     while retrytime < 60: # Allows up to about 60 seconds of delay - enough for a long OVP generation
 #         try:
-#             connectDB()
+#             connect_db()
 #         except sqlite3.OperationalError as e:
 #             if 'database is locked' not in str(e):
 #                 break   # Drop out of loop and raise error

@@ -1,9 +1,10 @@
-from flask import Flask, request, send_from_directory, redirect
+from flask import Flask, request, session, g, redirect, url_for, abort, \
+     render_template, flash
 from pyzipcode import ZipCodeDatabase
 from twilio.rest import TwilioRestClient
-from oct_utils import sqlSend, connectDB, disconnectDB, insertR, printall, find
 from oct_constants import NULLNONE, ONEORNONE
-from oct_local import dir_path, db_path
+from oct_utils import sqlpair, flatten2d, checkNull
+from oct_local import dir_path, script_path
 import csv
 # import redis XXXREDIS
 import twilio.twiml
@@ -15,27 +16,164 @@ app = Flask(__name__)
 # r = redis.Redis('localhost') XXXREDIS
 execfile(os.path.join(dir_path, 'SECRETS.py'))
 
-
 account_sid = os.environ['TWILIO_SID']
 auth_token = os.environ['TWILIO_AUTH']
 
-def updatedb():
-	# XXXREDIS
-	# for hsh in ['issues', 'targets']:
-	# 	if r.hget('refresh',hsh) !=0:
-	# 		with open(dir_path+'/'+hsh+'.csv') as f:
-	# 			csv_data = csv.reader(f)
-	# 			for row in csv_data:
-	# 				[r.hset(row[1],row[i*2],row[i*2+1]) for i in range(1,len(row)/2)]
-	# 		r.hset('refresh',hsh, 0)
-	# for sets in ['arenas',]:
-	# 	if r.hget('refresh',sets) !=0:
-	# 		with open(dir_path+'/'+sets+'.csv') as f:
-	# 			csv_data = csv.reader(f)
-	# 			for row in csv_data:
-	# 				[r.sadd(row[1],row[i+2]) for i in range(1,len(row)-2)]
-	# 		r.hset('refresh',sets, 0)
-	return
+### DB Maintenance ###
+
+def connect_db():
+    databasefile = os.path.join(dir_path, 'onecall.sqlt')
+    # The sqlite3.PARSE_DECLTYPES is so that a timestamp column will get parsed correctly.
+    rv = sqlite3.connect(databasefile, detect_types=sqlite3.PARSE_DECLTYPES)
+    rv.execute('pragma foreign_keys = on')
+    # Dont wait for operating system http://www.sqlite.org/pragma.html#pragma_synchronous
+    #http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html#pragma-synchronous
+    rv.execute('pragma synchronous = off')
+    rv.row_factory = sqlite3.Row
+    return rv
+
+def get_db():
+    """Opens a new database connection if there is none yet for the
+    current application context.
+    """
+    if not hasattr(g, 'sqlite_db'):
+        g.sqlite_db = connect_db()
+    return g.sqlite_db
+
+def init_db():
+    db = get_db()
+    with app.open_resource('db.sql', mode='r') as f:
+        db.cursor().executescript(f.read())
+    db.commit()
+
+@app.cli.command('initdb')
+def initdb_command():
+    """Initializes the database."""
+    init_db()
+    print 'Initialized the database.'
+
+@app.teardown_appcontext
+def close_db(error):
+    """Closes the database again at the end of the request."""
+    if hasattr(g, 'sqlite_db'):
+        g.sqlite_db.close()
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+### Functions ###
+def printall(): # Prints the entire database to the console window
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cursor.fetchall()
+    print '\n'*2
+    print '='*100
+    for t in tables:
+        name = t[0]
+        if name != 'sqlite_sequence':
+            print 'Name: ', name
+            cursor.execute("SELECT * FROM "+name)
+            print 'Columns: ', [description[0] for description in cursor.description]
+            print 'Data: ', cursor.fetchall()
+	    print '-'*100
+    return 
+
+def insertR(table, r):
+    """
+    Standard insert method that uses the insertstr defined in each class
+    call this from iinsert(..<class dependent field list>.) in each class
+    Note - can pass record as parameters and will auto-convert to id.
+    """
+    insertstr = {
+        "caller":"INSERT INTO caller VALUES (NULL,?,?,NULL,NULL)",
+        "campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?)",
+        "target": "INSERT INTO target VALUES (NULL,?,?,?,?)",
+        "region": "INSERT INTO region VALUES (NULL,?,?)",
+        "call": "INSERT INTO call VALUES (NULL,?,?,?)",
+    }
+    sqlSend(insertstr[table], r)  # Can throw sqlite3.IntegrityError if doesnt match constraint in table structure
+
+def sqlSend(sql, parms=None):
+    """
+    Encapsulate most access to the sql server
+    Send a sql string to a server, with parms if supplied
+
+    sql: sql statement that may contain usual "?" characters
+    parms[]: array or list of parameters to sql
+    ERR: IntegrityError (FOREIGN KEY constraint failed)
+    should catch database is locked errors and delay - may need to catch other errors but watch logs for them
+    """
+    db = get_db()
+    retrytime = 0.001       # Start with 1mS, might be far too short
+    while retrytime < 60: # Allows up to about 60 seconds of delay
+        try:
+            if parms is None:
+                db.cursor().execute(sql)
+                db.commit()
+            else:  # parms supplied as array
+                db.cursor().execute(sql, parms)
+                db.commit()
+        except sqlite3.OperationalError as e:
+            if 'database is locked' not in str(e):
+                break   # Drop out of loop and raise error
+            time.sleep(retrytime)
+            retrytime *= 2          # Try twice as long each iteration
+        except Exception as e:
+            break   # Drop out of loop and raise error
+        else: # No exception
+        	return db.cursor().rowcount
+    raise e
+
+def sqlFetch(sql, parms=None):
+    """
+    Encapsulate most access to the sql server
+    Send a sql string to a server, with parms if supplied
+
+    sql: sql statement that may contain usual "?" characters
+    parms[]: array or list of parameters to sql
+
+    returns array (possibly empty) of Rows (each of which behaves like a dict) as supplied by fetchall
+    """
+    sqlSend(sql, parms)  # Will always return -1 on SELECT
+    db = get_db()
+    rr = db.cursor().fetchall()
+    return rr
+
+def find(table, nullbehavior, _skipNone=False, **kwargs):
+    """
+    Generic find
+    Searches a sql table, knows about "IS NULL" and tags.
+    """
+    # Preprocess vals
+    keys,val1 = zip(*[sqlpair(key, val) for key,val in kwargs.iteritems() if not (_skipNone and val is None)])
+    vals = flatten2d(val1)
+    sql = "SELECT * FROM %s WHERE %s" % (table, " AND ".join(keys))
+    return findAndCheckNull(sql,vals,"record matches fields", nullbehavior)
+
+def findAndCheckNull(sql, parm, where, nullbehavior):
+    """
+    Do a SQL SELECT and
+    Handle the generic nullbehavior based on the length of the retrieved obj
+    sql is a SQL SELECT string to execute
+    parm is array of parameters to sql
+    where is the inner part of an error message
+    nullbehavior controls behavior if field doesn't point to anything
+    NULLERR Err 52; NULLNONE - return [ ]  -
+    ONLYONE says only ok if exactly one found, and return that err 63 if >1 or 52 if none
+    ONEORNONE says return obj if found, or None if not, err 63 if >1
+    FINDERR - Err 51 if found
+    All of these errors should be caught before the user sees them - 51 is (except in createNewAgent),
+    52 and 63 still need tracing
+
+    ERR 51,52,63
+
+    Subclassed by Deal to handle subtypes
+    """
+    rr = sqlFetch(sql,parm)
+    return checkNull(rr, where, nullbehavior)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### URL Calls ###
 
 @app.route("/")
 def populatelanding():
@@ -54,14 +192,13 @@ def flushdb():
 	"""
 	This XXX DANGEROUS function deletes all database content
 	"""
-	# XXXREDIS
-	# r.flushall()
+	os.system('flask initdb')
 	return redirect('/')
 
 @app.route('/registerNewUser', methods=['GET', 'POST'])
 def registerNewUser():
 	"""
-	This function brings in 
+	This function brings in a new user
 	"""
 	zc = request.form.get('zipcode')
 	ph = request.form.get('phonenumber')
