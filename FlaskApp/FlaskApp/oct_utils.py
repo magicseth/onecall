@@ -32,32 +32,6 @@ def getOrInsert(table, name, contactinfo, tags):
     if o is None:
         o = cls.iinsert( name, contactinfo, tags)
     return o
-
-
-def idUpdateFields(table, id, _skipNone=False, **kwargs):
-    """
-    Update Class[id][field]= newvalue for all (field, newvalue) in kwargs
-    Note that kwargs values may be any subclass of Record and it should be logged appropriately
-    """
-    ## Note that keys and values are guaranteed to be same order, since the dict is not
-    ## modified in between
-    ## Take care here, because its valid to set tags to None, so absence of kwargs["tags"] is not same as it being None
-    if isinstance(id,(list,tuple)) and len(id) == 0:
-        return # Nothing to change - saves callers checking for empty list always
-    if _skipNone:
-        kwargs = {k:v for k,v in kwargs.items() if v}  # Ignore non None
-    keys = kwargs.keys()
-    values = kwargs.values()
-    field_update = ", ".join("%s = ?" % k for k in keys)
-    where,ids = sqlpair("id",id)
-    updatesql = "UPDATE %s SET %s WHERE %s" % (cls.typetable, field_update, where)
-    values = values + ids
-    #print "XXX@921", updatesql, values
-    rowcount = sqlSend(updatesql, values)
-    if rowcount >0: pass
-    else:
-            raise Error("Failed to update - rowcount=%s sql=%s"
-                    % (rowcount, updatesql))
         
 def sqlpair(key,val):
     """

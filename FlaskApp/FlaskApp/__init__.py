@@ -2,9 +2,10 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 from pyzipcode import ZipCodeDatabase
 from twilio.rest import TwilioRestClient
-from oct_constants import NULLNONE, ONEORNONE
+from oct_constants import NULLNONE, ONEORNONE, ACTIVE
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, script_path
+from datetime import datetime
 import csv
 # import redis XXXREDIS
 import twilio.twiml
@@ -78,20 +79,51 @@ def printall(): # Prints the entire database to the console window
 	    print '-'*100
     return 
 
-def insertR(table, r):
+def insertR(table, r, update=False):
     """
     Standard insert method that uses the insertstr defined in each class
     call this from iinsert(..<class dependent field list>.) in each class
     Note - can pass record as parameters and will auto-convert to id.
     """
     insertstr = {
-        "caller":"INSERT INTO caller VALUES (NULL,?,?,NULL,NULL)",
+        "caller":"INSERT INTO caller VALUES (NULL,?,?,?,?)",
         "campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?)",
         "target": "INSERT INTO target VALUES (NULL,?,?,?,?)",
         "region": "INSERT INTO region VALUES (NULL,?,?)",
         "call": "INSERT INTO call VALUES (NULL,?,?,?)",
     }
-    sqlSend(insertstr[table], r)  # Can throw sqlite3.IntegrityError if doesnt match constraint in table structure
+    if update and table=='caller':
+    	c = find(table, ONEORNONE, phone=r[0])
+    	if c:
+    		idUpdateFields(table, c[0], phone=r[0], zipcode=r[1], calltime=r[2], active=r[3])
+    		return c[0] # Return the ID of the object
+	curs = sqlSend(insertstr[table], r)  # Can throw sqlite3.IntegrityError if doesnt match constraint in table structure
+	return curs.lastrowid
+
+def idUpdateFields(table, id, _skipNone=False, **kwargs):
+    """
+    Update Class[id][field]= newvalue for all (field, newvalue) in kwargs
+    Note that kwargs values may be any subclass of Record and it should be logged appropriately
+    """
+    ## Note that keys and values are guaranteed to be same order, since the dict is not
+    ## modified in between
+    ## Take care here, because its valid to set tags to None, so absence of kwargs["tags"] is not same as it being None
+    if isinstance(id,(list,tuple)) and len(id) == 0:
+        return # Nothing to change - saves callers checking for empty list always
+    if _skipNone:
+        kwargs = {k:v for k,v in kwargs.items() if v}  # Ignore non None
+    keys = kwargs.keys()
+    values = kwargs.values()
+    field_update = ", ".join("%s = ?" % k for k in keys)
+    where,ids = sqlpair("id",id)
+    updatesql = "UPDATE %s SET %s WHERE %s" % (table, field_update, where)
+    values = values + ids
+    # print "XXX@921", updatesql, values
+    curs = sqlSend(updatesql, values)
+    if curs.rowcount >0: pass
+    else:
+            raise Error("Failed to update - rowcount=%s sql=%s"
+                    % (rowcount, updatesql))
 
 def sqlSend(sql, parms=None):
     """
@@ -201,15 +233,16 @@ def registerNewUser():
 	"""
 	zc = request.form.get('zipcode')
 	ph = request.form.get('phonenumber')
+	ampm = int(request.form.get('ampm'))
+	hh = int(request.form.get('hour'))
+	mm = int(request.form.get('minute'))
 	try:
 		delta = ZipCodeDatabase()[zc].timezone
 		# ZipCode object fields: zip, city, state, longitude, latitude, timezone, dst
 	except:
-		delta=0 # XXX This is invalid, as we won't call them on the right timezone
-		# raise UserWarning('Invalid Zip') # do we need to make an actual error class?
-	# time = str(int(request.form.get('hour'))-delta)+":"+request.form.get('minute')+" "+request.form.get('ampm') # use the zipcode to change the time to GMT
-    #    #format(tn='callers', pn='phone', phonee=ph, z='zipcode',zipcode=zc))
-	insertR('caller',[ph,zc])
+		raise UserWarning('Invalid Zip') # do we need to make an actual error class?
+	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
+	insertR('caller',[ph,zc,calltime,ACTIVE],update=True)
 	return redirect('./static/thanks.html')
 
 @app.route("/findcallers")

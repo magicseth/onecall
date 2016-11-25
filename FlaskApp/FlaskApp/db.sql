@@ -6,10 +6,10 @@ drop table if exists call;
 
 CREATE TABLE caller (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-  phone varchar(25),
+  phone varchar(25) UNIQUE,
   zipcode varchar(25),
-  calltime time,
-  active varchar(50)
+  calltime datetime,
+  active integer
 ) ;
 
 CREATE TABLE campaign (

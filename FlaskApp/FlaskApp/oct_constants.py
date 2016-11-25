@@ -7,3 +7,6 @@ NULLNONE = 1  # Return empty array if expecting array - if singular, use ONEORNO
 ONLYONE = 2  # Return a single value not an array else error if not found, err if >1
 FINDERR = 3  # Error 51 if match is found
 ONEORNONE = 4 # Return a single value or None, Err if >1
+
+INACTIVE = 0
+ACTIVE = 1
