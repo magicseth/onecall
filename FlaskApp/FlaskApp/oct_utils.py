@@ -42,7 +42,7 @@ def sqlpair(key,val):
     if isinstance(val,(tuple,list,set)):
         return key+" IN ("+','.join(['?']*len(val))+")",  [ v.id() if isinstance(v,Record) else v for v in val ]
     if val is None:                     return key+" IS NULL", [ ]
-    if isinstance(val,basestring) and len(val) >= 3 and val[0]=='%' and val[-1] == '%':
+    if isinstance(val,basestring) and len(val) >= 2 and val[0]=='%' and val[-1] == '%':
         return key+" LIKE ?", [ val ]
     if isinstance(val,basestring):
         (w1,w2) = splitw(val)

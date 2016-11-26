@@ -1,13 +1,15 @@
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 from pyzipcode import ZipCodeDatabase
+from urllib2 import Request, urlopen, URLError
 from twilio.rest import TwilioRestClient
 from oct_constants import NULLNONE, ONEORNONE, ACTIVE
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, script_path
 from datetime import datetime
+from time import time
 import csv
-# import redis XXXREDIS
+import json
 import twilio.twiml
 import os
 
@@ -47,6 +49,20 @@ def init_db():
         db.cursor().executescript(f.read())
     db.commit()
 
+def populateTestDB():
+	insertR('caller',['1000000000', '94107', '2016-11-26 13:00:00', 1])
+	insertR('caller',['1000000001', '10001', '2016-11-26 13:00:00', 1])
+	insertR('caller',['1000000002', '25443', '2016-11-26 14:00:00', 1])
+	insertR('caller',['1000000003', '10001', '2016-11-26 13:00:00', 0])
+	
+	insertR('campaign',['Gun control is super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic'])
+	insertR('campaign',['Civil rights are super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody', 'Republican'])
+	insertR('campaign',['Freedom of speech is super important', 1480153004+604800, 1480153004+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican'])
+
+	insertR('call',[datetime.now(), '1', '1', '(202) 225-4965', 'Nancy Pelosi', 'United States House of Representatives CA-12'])
+	insertR('call',[datetime.now(), '1', '2', '(202) 224-3553', 'Barbara Boxer', 'United States Senate'])
+
+
 @app.cli.command('initdb')
 def initdb_command():
     """Initializes the database."""
@@ -60,25 +76,7 @@ def close_db(error):
         g.sqlite_db.close()
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-### Functions ###
-def printall(): # Prints the entire database to the console window
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = cursor.fetchall()
-    print '\n'*2
-    print '='*100
-    for t in tables:
-        name = t[0]
-        if name != 'sqlite_sequence':
-            print 'Name: ', name
-            cursor.execute("SELECT * FROM "+name)
-            print 'Columns: ', [description[0] for description in cursor.description]
-            print 'Data: ', cursor.fetchall()
-	    print '-'*100
-    return 
-
+### URL Calls ###
 def insertR(table, r, update=False):
     """
     Standard insert method that uses the insertstr defined in each class
@@ -164,11 +162,12 @@ def sqlFetch(sql, parms=None):
     sql: sql statement that may contain usual "?" characters
     parms[]: array or list of parameters to sql
 
-    returns array (possibly empty) of Rows (each of which behaves like a dict) as supplied by fetchall
-    """
-    curs = sqlSend(sql, parms)  # Will always return -1 on SELECT
-    rr = curs.fetchall()
-    return rr
+	returns array (possibly empty) of Rows (each of which behaves like a dict) as supplied by fetchall
+	"""
+	curs = sqlSend(sql, parms)  # Will always return -1 on SELECT
+	dd = [dict((curs.description[i][0], value) \
+               for i, value in enumerate(row)) for row in curs.fetchall()]
+	return dd
 
 def find(table, nullbehavior, _skipNone=False, **kwargs):
     """
@@ -250,15 +249,12 @@ def findcallers():
 	"""
 	This function is called by the cron to look for callers.
 	"""
-	now = "13:00 am"
-	print find('caller', NULLNONE, id='1')
-	# XXXREDIS
-	# callers = [n for n in r.keys() if r.type(n)=='hash' and r.hget(n,'calltime')==now]
-	# pairs = [[c,r.get(r.hget(c,'zipcode'))] for c in callers if r.get(r.hget(c,'zipcode'))]
-	# print pairs
-	# for c, t in pairs:
-	# 	print c+" should call "+t+" and hear '"+r.hget(t,'bio')+"'."
-	# XXX need to decide how to choose the content they will say to the target
+	now = datetime.now().replace(hour=13, minute=0) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
+	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
+		campaigns = listCampaigns(c)
+		targets = listTargets(campaigns[0],c) if campaigns else []
+		if targets: 
+			print c['phone'], ' should call ', targets[0]['name'], ' of ', targets[0]['office'], ' at ', targets[0]['phones'], ' about ', campaigns[0]['message']
 	return redirect('/')
 
 @app.route("/callpaul", methods=['GET', 'POST'])
