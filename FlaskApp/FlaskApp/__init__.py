@@ -16,7 +16,14 @@ import os
 import sqlite3
 
 app = Flask(__name__)
-# r = redis.Redis('localhost') XXXREDIS
+app.config.from_object(__name__)
+# Load default config and override config from an environment variable
+app.config.update({
+    'DATABASE': os.path.join(app.root_path, 'onecall.sqlt'),
+    'SECRET_KEY':'development key',
+    'UP': {'jona':'jona', 'seth':'seth'}
+    })
+
 execfile(os.path.join(dir_path, 'SECRETS.py'))
 
 account_sid = os.environ['TWILIO_SID']
@@ -267,21 +274,48 @@ def listCampaigns(caller):
 def populatelanding():
 	return app.send_static_file('landing.html')
 
+@app.route("/login")
+def login():
+	return app.send_static_file('login.html')
+
+@app.route('/checkLogin', methods=['GET', 'POST'])
+def checkLogin():
+    if request.method == 'POST':
+        if request.form['username'] in app.config['UP'] and request.form['password'] == app.config['UP'][request.form['username']]:
+            session['logged_in'] = True
+            return redirect('/dashboard')
+    return redirect('/login')
+
+@app.route("/dashboard")
+def dashboard():
+	if not session.get('logged_in'):
+		abort(401)
+	return app.send_static_file('dashboard.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect('/')
+
 @app.route("/dump")
 def dumpdb():
 	"""
 	This DANGEROUS function prints to the browser window the entirety of the redis database
 	"""
+	if not session.get('logged_in'):
+		abort(401)
 	print printall()
-	return redirect('/')
+	return redirect('/dashboard')
 
 @app.route("/flush")
 def flushdb():
 	"""
 	This XXX DANGEROUS function deletes all database content
 	"""
+	if not session.get('logged_in'):
+		abort(401)
 	os.system('flask initdb')
-	return redirect('/')
+	return redirect('/dashboard')
 
 @app.route('/registerNewUser', methods=['GET', 'POST'])
 def registerNewUser():
@@ -307,17 +341,21 @@ def findcallers():
 	"""
 	This function is called by the cron to look for callers.
 	"""
+	if not session.get('logged_in'):
+		abort(401)
 	now = datetime.now().replace(hour=13, minute=0) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
 	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
 		campaigns = listCampaigns(c)
 		targets = listTargets(campaigns[0],c) if campaigns else []
 		if targets: 
 			print c['phone'], ' should call ', targets[0]['name'], ' of ', targets[0]['office'], ' at ', targets[0]['phones'], ' about ', campaigns[0]['message']
-	return redirect('/')
+	return redirect('/dashboard')
 
 @app.route("/callpaul", methods=['GET', 'POST'])
 def hello_monkey():
 	"""Respond to incoming requests."""
+	if not session.get('logged_in'):
+		abort(401)
 	resp = twilio.twiml.Response()
 	resp.say("It's time to call Jona")
 	# Dial (310) 555-1212 - connect that number to the incoming caller.
@@ -326,6 +364,8 @@ def hello_monkey():
 
 @app.route("/textseth", methods=['GET'])
 def text_seth():
+	if not session.get('logged_in'):
+		abort(401)
 	"Send a text message to seth"
 	client = TwilioRestClient(account_sid, auth_token)
 	message = client.messages.create(to="+16177107496", from_="+16179256394",
