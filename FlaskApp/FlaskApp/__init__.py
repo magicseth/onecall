@@ -260,6 +260,13 @@ def listTargets(campaign, caller):
 				targets = targets+[{'name':cd['officials'][i]['name'], 'phones':cd['officials'][i]['phones'], 'office':office}]
 	return targets
 
+def listCampaignsByCallerId(callerid):
+	"""
+	Takes in a phone, returns a list of campaign dicts that the caller has NOT yet called about, but which are ongoing right now.
+	"""
+	calls = [call['campaignid'] for call in find('call', NULLNONE, callerid=callerid)]
+	return [camp for camp in find('campaign', NULLNONE, id='%%', startdate='< '+str(time()), enddate='> '+str(time())) if camp['id'] not in calls]
+
 def listCampaigns(caller):
 	"""
 	Takes in a caller, returns a list of campaign dicts that the caller has NOT yet called about, but which are ongoing right now.
@@ -267,6 +274,11 @@ def listCampaigns(caller):
 	calls = [call['campaignid'] for call in find('call', NULLNONE, callerid=caller['id'])]
 	return [camp for camp in find('campaign', NULLNONE, id='%%', startdate='< '+str(time()), enddate='> '+str(time())) if camp['id'] not in calls]
 
+def getCaller(callerid):
+	"""
+	Takes in a callerid and returns the caller object
+	"""
+	return find('caller', NULLNONE, id=callerid)[0]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
 
@@ -395,6 +407,33 @@ def text_seth():
 									 body="Hello there!")
 	return "success"
 
+@app.route("/campaignseth", methods=['GET'])
+def start_campaign():
+	campaign = 1
+	callerid = 1
+	# caller = getCaller(callerid)
+
+	client = TwilioRestClient(account_sid, auth_token)
+	call = client.calls.create(to="(617)7107496",  # Any phone number
+		from_="+16179256394 ", # Must be a valid Twilio number
+		url="http://onecall.today/callscript?campaign=" + str(campaign) + "&callerid=" + str(callerid))
+	return(call.sid)
+
+@app.route("/callscript", methods=['GET'])
+def callscript():
+	campaign = request.args.get('campaign')
+	callerid = request.args.get('callerid')
+	caller = getCaller(callerid)
+	the_campaign = find('campaign', NULLNONE, id=campaign)[0]
+	target = listTargets(the_campaign, caller)[0]
+
+	resp = twilio.twiml.Response()
+	resp.say(the_campaign['message'])
+	# Dial (310) 555-1212 - connect that number to the incoming caller.
+	resp.say("Connecting you to " + target['name'] + ' of ' + target['office'])
+	resp.dial(target['phones'][0])
+	return str(resp)
+	# return ("campaign " + str(the_campaign) )
 
 
 if __name__ == "__main__":
