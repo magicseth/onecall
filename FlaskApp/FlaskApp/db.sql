@@ -1,6 +1,7 @@
-drop table if exists caller;
+drop table if exists call; 
+-- call must come first because of foreign key dependency!
 drop table if exists campaign;
-drop table if exists call;
+drop table if exists caller;
 
 CREATE TABLE caller (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,

@@ -3,7 +3,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 from pyzipcode import ZipCodeDatabase
 from urllib2 import Request, urlopen, URLError
 from twilio.rest import TwilioRestClient
-from oct_constants import NULLNONE, ONEORNONE, ACTIVE
+from oct_constants import NULLNONE, ONEORNONE, ONLYONE, ACTIVE
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, script_path
 from datetime import datetime
@@ -274,11 +274,29 @@ def listCampaigns(caller):
 	calls = [call['campaignid'] for call in find('call', NULLNONE, callerid=caller['id'])]
 	return [camp for camp in find('campaign', NULLNONE, id='%%', startdate='< '+str(time()), enddate='> '+str(time())) if camp['id'] not in calls]
 
-def getCaller(callerid):
+def caller(id, nullbehavior=ONLYONE):
 	"""
-	Takes in a callerid and returns the caller object
+	Takes an ID, returns a dict object from the corresponding database row
+	Default is ONLYONE: will ERROR if no object found.
+	Set to nullbehavior to ONEORNONE if you want return None instead of erroring
 	"""
-	return find('caller', NULLNONE, id=callerid)[0]
+	return find('caller', nullbehavior, id=id)
+
+def call(id, nullbehavior=ONLYONE):
+	"""
+	Takes an ID, returns a dict object from the corresponding database row
+	Default is ONLYONE: will ERROR if no object found.
+	Set to nullbehavior to ONEORNONE if you want return None instead of erroring
+	"""
+	return find('call', nullbehavior, id=id)
+
+def campaign(id, nullbehavior=ONLYONE):
+	"""
+	Takes an ID, returns a dict object from the corresponding database row
+	Default is ONLYONE: will ERROR if no object found.
+	Set to nullbehavior to ONEORNONE if you want return None instead of erroring
+	"""
+	return find('campaign', nullbehavior, id=id)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
 
@@ -356,16 +374,16 @@ def registerNewCampaign():
 	if not session.get('logged_in'):
 		abort(401)
 	message = request.form.get('message')
-	startdate = int(request.form.get('startdate'))
-	enddate = int(request.form.get('enddate'))
-	callobjective = int(request.form.get('callobjective'))
+	startdate = int(time())+int(request.form.get('startdate') or 0)*24*60*60 # Defaults campaign start date to right now
+	enddate = startdate+int(request.form.get('enddate') or 30)*24*60*60 # Defaults campaign lifespan to 30 days
+	callobjective = int(request.form.get('callobjective') or 1000)  # Defaults to 1000 call objective
 	offices = ', '.join(request.form.getlist('offices[]'))
 	targetparties = ', '.join(request.form.getlist('targetparties[]'))
 	insertR('campaign',[message,startdate,enddate,callobjective,offices,targetparties])
 	return redirect('./static/thanks.html')
 
 @app.route('/thanks')
-def thankredirect():
+def thanksredirect():
 	if not session.get('logged_in'):
 		return redirect('/')
 	else:
@@ -374,16 +392,23 @@ def thankredirect():
 @app.route("/findcallers")
 def findcallers():
 	"""
-	This function is called by the cron to look for callers.
+	This function is called by the cron to look for callers. 
+	It takes no arguments, but searches the entire caller database for anyone who wants to be called at the current timestamp.
+	It then finds all the campaigns a caller hasn't yet called
+	It then finds all the targets for those campaigns
+	Finally, it prints the results to screen (XXX SHOULD execute call instead)
 	"""
 	if not session.get('logged_in'):
 		abort(401)
 	now = datetime.now().replace(hour=13, minute=0) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
 	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
 		campaigns = listCampaigns(c)
-		targets = listTargets(campaigns[0],c) if campaigns else []
-		if targets: 
-			print c['phone'], ' should call ', targets[0]['name'], ' of ', targets[0]['office'], ' at ', targets[0]['phones'], ' about ', campaigns[0]['message']
+		for campaign in campaigns:
+			targets = listTargets(campaign,c) if campaigns else []
+			for target in targets: 
+				print c['phone'], ' should call ', target['name'], ' of ', target['office'], ' at ', target['phones'], ' about ', campaign['message']
+				print ""
+	print "NO MORE CALLS TO BE MADE"
 	return redirect('/dashboard')
 
 @app.route("/callpaul", methods=['GET', 'POST'])
@@ -409,35 +434,40 @@ def text_seth():
 
 @app.route("/campaignseth", methods=['GET'])
 def start_campaign():
-	campaign = 1
+	# XXXSETH how do we protect our twilio service from being accessed by arbitrary calls to our exposed functions?
+	# XXXSETH this is currently calling me and saying "we are sorry an application error has occured, goodbye"
+	# XXXSETH we need to be careful--this can accidentally be run on dev platform during testing or debug and it will make the actual calls... When live, it will be important to make it only execute calls from the actual live server.
+	campaignid = 1
 	callerid = 1
-	# caller = getCaller(callerid)
+	# caller = caller(callerid)
 
 	client = TwilioRestClient(account_sid, auth_token)
 	call = client.calls.create(to="(617)7107496",  # Any phone number
 		from_="+16179256394 ", # Must be a valid Twilio number
 		if_machine="Hangup",
-		url="http://onecall.today/callscript?campaign=" + str(campaign) + "&callerid=" + str(callerid))
+		url="http://onecall.today/callscript?campaignid=" + str(campaignid) + "&callerid=" + str(callerid))
 	return(call.sid)
 
 @app.route("/callscript", methods=['GET'])
 def callscript():
-	campaign = request.args.get('campaign')
-	callerid = request.args.get('callerid')
-	caller = getCaller(callerid)
-	the_campaign = find('campaign', NULLNONE, id=campaign)[0]
-	target = listTargets(the_campaign, caller)[0]
-
+	# XXXSETH this function needs to only respond if the request is coming from TWILIO
+	camp = campaign(request.args.get('campaignid'))
+	clr = caller(request.args.get('callerid'))
+	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
 	resp = twilio.twiml.Response()
-	resp.say(the_campaign['message'],voice='woman')
+	resp.say(camp['message'],voice='woman')
 	resp.pause(length="1")
-	resp.say("If you'd like to be connected to " + target['name'] +" remain on the line")
-	resp.pause(length="4")
-	# Dial (310) 555-1212 - connect that number to the incoming caller.
-	resp.say("Connecting you to " + target['name'] + ' of ' + target['office'])
-	resp.dial(target['phones'][0])
+	if targets:
+		resp.say("If you'd like to be connected to " + targets[0]['name'] +" remain on the line")
+		resp.pause(length="4")
+		# Dial (310) 555-1212 - connect that number to the incoming caller.
+		resp.say("Connecting you to " + targets[0]['name'] + ' of ' + targets[0]['office'])
+		resp.dial(targets[0]['phones'][0])
+	else:
+		# XXX The campaign should not get this far, if the caller has no targets for it.
+		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")		
 	return str(resp)
-	# return ("campaign " + str(the_campaign) )
+	# return ("campaign " + str(camp) )
 
 
 if __name__ == "__main__":
