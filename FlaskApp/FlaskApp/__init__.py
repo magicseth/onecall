@@ -416,6 +416,7 @@ def start_campaign():
 	client = TwilioRestClient(account_sid, auth_token)
 	call = client.calls.create(to="(617)7107496",  # Any phone number
 		from_="+16179256394 ", # Must be a valid Twilio number
+		if_machine="Hangup",
 		url="http://onecall.today/callscript?campaign=" + str(campaign) + "&callerid=" + str(callerid))
 	return(call.sid)
 
@@ -428,7 +429,7 @@ def callscript():
 	target = listTargets(the_campaign, caller)[0]
 
 	resp = twilio.twiml.Response()
-	resp.say(the_campaign['message'])
+	resp.say(the_campaign['message'],voice='woman')
 	# Dial (310) 555-1212 - connect that number to the incoming caller.
 	resp.say("Connecting you to " + target['name'] + ' of ' + target['office'])
 	resp.dial(target['phones'][0])
