@@ -463,6 +463,7 @@ def callscript():
 		# Dial (310) 555-1212 - connect that number to the incoming caller.
 		resp.say("Connecting you to " + targets[0]['name'] + ' of ' + targets[0]['office'])
 		resp.dial(targets[0]['phones'][0])
+		insertR('call',[datetime.now(),clr['id'],camp['id'],target['phone'],target['name'],target['office'],])
 	else:
 		# XXX The campaign should not get this far, if the caller has no targets for it.
 		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")		
