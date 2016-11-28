@@ -430,6 +430,9 @@ def callscript():
 
 	resp = twilio.twiml.Response()
 	resp.say(the_campaign['message'],voice='woman')
+	resp.pause(1)
+	resp.say("If you'd like to be connected to " + target['name'] +" remain on the line")
+	resp.pause(4)
 	# Dial (310) 555-1212 - connect that number to the incoming caller.
 	resp.say("Connecting you to " + target['name'] + ' of ' + target['office'])
 	resp.dial(target['phones'][0])
