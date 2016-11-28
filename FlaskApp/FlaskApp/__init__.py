@@ -336,6 +336,29 @@ def registerNewUser():
 	insertR('caller',[ph,zc,calltime,ACTIVE],update=True)
 	return redirect('./static/thanks.html')
 
+@app.route('/registerNewCampaign', methods=['GET', 'POST'])
+def registerNewCampaign():
+	"""
+	This function brings in a new campaign
+	"""
+	if not session.get('logged_in'):
+		abort(401)
+	message = request.form.get('message')
+	startdate = int(request.form.get('startdate'))
+	enddate = int(request.form.get('enddate'))
+	callobjective = int(request.form.get('callobjective'))
+	offices = ', '.join(request.form.getlist('offices[]'))
+	targetparties = ', '.join(request.form.getlist('targetparties[]'))
+	insertR('campaign',[message,startdate,enddate,callobjective,offices,targetparties])
+	return redirect('./static/thanks.html')
+
+@app.route('/thanks')
+def thankredirect():
+	if not session.get('logged_in'):
+		return redirect('/')
+	else:
+		return redirect('/dashboard')
+
 @app.route("/findcallers")
 def findcallers():
 	"""

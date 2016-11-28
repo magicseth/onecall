@@ -16,37 +16,37 @@
       <form action="registerNewCampaign" method="Post">
         <table class="center">
           <tr><td colspan="4"><textarea class="inp" name="message" cols="80" rows="5" placeholder="Message to Caller" required></textarea></td></tr>
-          <tr><td colspan="4"><input class="inp" type="text" name="startdate" placeholder="Start Date"></td></tr>
-          <tr><td colspan="4"><input class="inp" type="text" name="enddate" placeholder="End Date"></td></tr>
+          <tr><td colspan="4"><input class="inp" type="text" name="startdate" placeholder="Days until Start"></td></tr>
+          <tr><td colspan="4"><input class="inp" type="text" name="enddate" placeholder="Duration in Days"></td></tr>
           <tr><td colspan="4"><input class="inp" type="number" name="callobjective" placeholder="Call # Objective"></td></tr>
           <tr><td colspan="4"><h3>Offices</h3></td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="executiveCouncil"></td> <td style="text-align: left">Executive Council</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="executiveCouncil"></td> <td style="text-align: left">Executive Council</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="governmentOfficer"></td> <td style="text-align: left">Government Officer</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="governmentOfficer"></td> <td style="text-align: left">Government Officer</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="headOfGovernment"></td> <td style="text-align: left">Head Of Government</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="headOfGovernment"></td> <td style="text-align: left">Head Of Government</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="headOfState"></td> <td style="text-align: left">Head Of State</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="headOfState"></td> <td style="text-align: left">Head Of State</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="highestCourtJudge"></td> <td style="text-align: left">Highest Court Judge</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="highestCourtJudge"></td> <td style="text-align: left">Highest Court Judge</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="judge"></td> <td style="text-align: left">Judge</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="judge"></td> <td style="text-align: left">Judge</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="legislatorLowerBody"></td> <td style="text-align: left">Legislator Lower Body</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="legislatorLowerBody"></td> <td style="text-align: left">Legislator Lower Body</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="legislatorUpperBody"></td> <td style="text-align: left">Legislator Upper Body</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="legislatorUpperBody"></td> <td style="text-align: left">Legislator Upper Body</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="schoolBoard"></td> <td style="text-align: left">School Board</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="schoolBoard"></td> <td style="text-align: left">School Board</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="specialPurposeOfficer"></td> <td style="text-align: left">Special Purpose Officer</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="specialPurposeOfficer"></td> <td style="text-align: left">Special Purpose Officer</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices" value="deputyHeadOfGovernment"></td> <td style="text-align: left">Deputy Head of Government</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="deputyHeadOfGovernment"></td> <td style="text-align: left">Deputy Head of Government</td></tr>
           <tr><td colspan="4"><h3>Target Parties</h3></td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="targetparties" value="Republican"></td> <td style="text-align: left">Republican</td></tr>
+            <td><input class="inp" type="checkbox" name="targetparties[]" value="Republican"></td> <td style="text-align: left">Republican</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="targetparties" value="Democratic"></td> <td style="text-align: left">Democratic</td></tr>
+            <td><input class="inp" type="checkbox" name="targetparties[]" value="Democratic"></td> <td style="text-align: left">Democratic</td></tr>
           <tr><td colspan="4"><input class="btn" type="submit" value="ADD CAMPAIGN"></td></tr>
         </table>
       </form>
