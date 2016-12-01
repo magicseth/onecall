@@ -6,7 +6,7 @@ from twilio.rest import TwilioRestClient
 from oct_constants import NULLNONE, ONEORNONE, ONLYONE, ACTIVE
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, script_path
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time
 import csv
 import json
@@ -430,7 +430,7 @@ def findcallers():
 	"""
 	if not session.get('logged_in'):
 		abort(401)
-	now = datetime.now().replace(hour=13, minute=0) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
+	now = datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
 	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
 		campaigns = listCampaigns(c)
 		for campaign in campaigns:
