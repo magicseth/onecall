@@ -66,7 +66,7 @@ def populateTestDB():
 	insertR('campaign',[None, 'Gun control is super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
 	insertR('campaign',[None, 'Civil rights are super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
 	insertR('campaign',[None, 'Freedom of speech is super important', 1480153004+604800, 1480153004+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican', None, None])
-	insertR('campaign',[None, 'Freedom of speech is super important', 1480153004+604800, 1480153004+604801, 1000, None, None, 'Jona Raphael', formatphonenumber('16178432883')])
+	insertR('campaign',[None, 'Calling Jona is super important', 0, 1480153004+604800, 1000, None, None, 'Jona Raphael', formatphonenumber('16178432883')])
 
 	insertR('call',[None, datetime.now(), '1', '1', formatphonenumber('(202) 225-4965'), 'Nancy Pelosi', 'United States House of Representatives CA-12'])
 	insertR('call',[None, datetime.now(), '1', '2', formatphonenumber('(202) 224-3553'), 'Barbara Boxer', 'United States Senate'])
@@ -270,13 +270,6 @@ def listTargets(campaign, caller):
 				if ('phones' in cd['officials'][i]) and (cd['officials'][i]['party'] in campaign['targetparties']):
 					targets = targets+[{'name':cd['officials'][i]['name'], 'phones':[formatphonenumber(ph) for ph in cd['officials'][i]['phones']], 'office':office}]
 	return targets
-
-def listCampaignsByCallerId(callerid):
-	"""
-	Takes in a phone, returns a list of campaign dicts that the caller has NOT yet called about, but which are ongoing right now.
-	"""
-	calls = [call['campaignid'] for call in find('call', NULLNONE, callerid=callerid)]
-	return [camp for camp in find('campaign', NULLNONE, id='%%', startdate='< '+str(time()), enddate='> '+str(time())) if camp['id'] not in calls]
 
 def listCampaigns(caller):
 	"""
