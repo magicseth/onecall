@@ -308,7 +308,7 @@ def formatphonenumber(ph, raiseerr=True):
 		num = "+1"+num
 	elif len(num) == 11 and num[0] == "1":
 		num = "+"+num
-	elif raiserrr:
+	elif raiseerr:
 		raise UserWarning
 	return num
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -401,8 +401,14 @@ def registerNewCampaign():
 	callobjective = int(request.form.get('callobjective') or 1000)  # Defaults to 1000 call objective
 	offices = ', '.join(request.form.getlist('offices[]'))
 	targetparties = ', '.join(request.form.getlist('targetparties[]'))
+	
+	required = (offices=='' or targetparties=='') # If there is no office or party selected, then it must be a targeted campaign
 	targetname = request.form.get('targetname')
-	targetphone = formatphonenumber(request.form.get('targetphone'))
+	targetphone = formatphonenumber(request.form.get('targetphone'), raiseerr=required)
+
+	if required and (targetname==''): # Must be a targeted campaign, but no name provided
+		raise UserWarning
+
 	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone])
 	return redirect('./static/thanks.html')
 
