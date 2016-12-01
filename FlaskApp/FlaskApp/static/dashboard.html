@@ -15,45 +15,49 @@
       <h2>Add New Campaign</h2>
       <form action="registerNewCampaign" method="Post">
         <table class="center">
-          <tr><td colspan="4"><textarea class="inp" name="message" cols="80" rows="5" placeholder="Message to Caller" required></textarea></td></tr>
-          <tr><td colspan="4"><input class="inp" type="number" name="startdate" placeholder="[0] Days until Start"></td></tr>
-          <tr><td colspan="4"><input class="inp" type="number" name="enddate" placeholder="[30] Day Campaign"></td></tr>
-          <tr><td colspan="4"><input class="inp" type="number" name="callobjective" placeholder="[1000] Call Objective"></td></tr>
-          <tr><td colspan="4"><h3>Offices</h3></td></tr>
+          <tr><td colspan="2"><textarea class="inp" name="message" cols="80" rows="5" placeholder="Message to Caller" required></textarea></td></tr>
+          <tr><td colspan="2"><input class="inp" type="number" name="startdate" placeholder="[0] Days until Start"></td></tr>
+          <tr><td colspan="2"><input class="inp" type="number" name="enddate" placeholder="[30] Day Campaign"></td></tr>
+          <tr><td colspan="2"><input class="inp" type="number" name="callobjective" placeholder="[1000] Call Objective"></td></tr>
+          <tr><td colspan="2"><h3>Offices</h3></td></tr>
+          <!-- onclick="document.getElementById('recurring').checked= !document.getElementById('recurring').checked" -->
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="executiveCouncil"></td> <td style="text-align: left">Executive Council</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="executiveCouncil"></td> <td class="leftalign">Executive Council</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="governmentOfficer"></td> <td style="text-align: left">Government Officer</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="governmentOfficer"></td> <td class="leftalign">Government Officer</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="headOfGovernment"></td> <td style="text-align: left">Head Of Government</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="headOfGovernment"></td> <td class="leftalign">Head Of Government</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="headOfState"></td> <td style="text-align: left">Head Of State</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="headOfState"></td> <td class="leftalign">Head Of State</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="highestCourtJudge"></td> <td style="text-align: left">Highest Court Judge</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="highestCourtJudge"></td> <td class="leftalign">Highest Court Judge</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="judge"></td> <td style="text-align: left">Judge</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="judge"></td> <td class="leftalign">Judge</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="legislatorLowerBody"></td> <td style="text-align: left">Legislator Lower Body</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="legislatorLowerBody"></td> <td class="leftalign">Legislator Lower Body</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="legislatorUpperBody"></td> <td style="text-align: left">Legislator Upper Body</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="legislatorUpperBody"></td> <td class="leftalign">Legislator Upper Body</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="schoolBoard"></td> <td style="text-align: left">School Board</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="schoolBoard"></td> <td class="leftalign">School Board</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="specialPurposeOfficer"></td> <td style="text-align: left">Special Purpose Officer</td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="specialPurposeOfficer"></td> <td class="leftalign">Special Purpose Officer</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="offices[]" value="deputyHeadOfGovernment"></td> <td style="text-align: left">Deputy Head of Government</td></tr>
-          <tr><td colspan="4"><h3>Target Parties</h3></td></tr>
+            <td><input class="inp" type="checkbox" name="offices[]" value="deputyHeadOfGovernment"></td> <td class="leftalign">Deputy Head of Government</td></tr>
+          <tr><td colspan="2"><h3>Target Parties</h3></td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="targetparties[]" value="Republican"></td> <td style="text-align: left">Republican</td></tr>
+            <td><input class="inp" type="checkbox" name="targetparties[]" value="Republican"></td> <td class="leftalign">Republican</td></tr>
           <tr>
-            <td><input class="inp" type="checkbox" name="targetparties[]" value="Democratic"></td> <td style="text-align: left">Democratic</td></tr>
-          <tr><td colspan="4"><input class="btn" type="submit" value="ADD CAMPAIGN"></td></tr>
+            <td><input class="inp" type="checkbox" name="targetparties[]" value="Democratic"></td> <td class="leftalign">Democratic</td></tr>
+          <tr><td colspan="2"><input class="inp" type="text" name="targetname" placeholder="Target Name [opt]"></td></tr>
+          <tr><td colspan="2"><input class="inp" type="text" name="targetphone" placeholder="Target Phone [opt]"></td></tr>
+          <tr><td colspan="2"><input class="inp" type="number" name="campaignid" placeholder="Replace Exist ID [opt]"></td></tr>
+          <tr><td colspan="2"><input class="btn" type="submit" value="ADD CAMPAIGN"></td></tr>
         </table>
       </form>
       <h2>Add New Caller</h2>
       <form action="registerNewUser" method="Post">
         <table class="center">
-          <tr><td><input class="inp" type="number" name="phonenumber" placeholder="Your Phone Number" required min="1000000000" max="9999999999"></td></tr>
+          <tr><td><input class="inp" type="number" name="phonenumber" placeholder="Your Phone Number" required min="1000000000" max="19999999999"></td></tr>
           <tr><td><input class="inp" type="number" name="zipcode" placeholder="Your Zip Code" required min="10000" max="99999"></td></tr>
           <tr><td>
             <select class="drop" name="hour">
@@ -65,6 +69,7 @@
             <select class="drop" name="ampm">
               <option value="0">AM</option><option value="12">PM</option>
             </select></td></tr>
+          <tr><td colspan="2"><input class="inp" type="number" name="callerid" placeholder="Replace Exist ID [opt]"></td></tr>
           <tr><td><input class="btn" type="submit" value="SIGN UP"></td></tr>
         </table>
       </form>

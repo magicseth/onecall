@@ -12,7 +12,7 @@ import csv
 import json
 import twilio.twiml
 import os
-
+import re
 import sqlite3
 
 app = Flask(__name__)
@@ -57,17 +57,19 @@ def init_db():
 	db.commit()
 
 def populateTestDB():
-	insertR('caller',['1000000000', '94107', '2016-11-26 13:00:00', 1])
-	insertR('caller',['1000000001', '10001', '2016-11-26 13:00:00', 1])
-	insertR('caller',['1000000002', '25443', '2016-11-26 14:00:00', 1])
-	insertR('caller',['1000000003', '10001', '2016-11-26 13:00:00', 0])
+	insertR('caller',[None, formatphonenumber('1000000000'), '94107', '2016-11-26 13:00:00', 1])
+	insertR('caller',[None, formatphonenumber('1000000001'), '10001', '2016-11-26 13:00:00', 1])
+	insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
+	insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
+	insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],True)
 	
-	insertR('campaign',['Gun control is super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic'])
-	insertR('campaign',['Civil rights are super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody', 'Republican'])
-	insertR('campaign',['Freedom of speech is super important', 1480153004+604800, 1480153004+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican'])
+	insertR('campaign',[None, 'Gun control is super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
+	insertR('campaign',[None, 'Civil rights are super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
+	insertR('campaign',[None, 'Freedom of speech is super important', 1480153004+604800, 1480153004+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican', None, None])
+	insertR('campaign',[None, 'Freedom of speech is super important', 1480153004+604800, 1480153004+604801, 1000, None, None, 'Jona Raphael', formatphonenumber('16178432883')])
 
-	insertR('call',[datetime.now(), '1', '1', '(202) 225-4965', 'Nancy Pelosi', 'United States House of Representatives CA-12'])
-	insertR('call',[datetime.now(), '1', '2', '(202) 224-3553', 'Barbara Boxer', 'United States Senate'])
+	insertR('call',[None, datetime.now(), '1', '1', formatphonenumber('(202) 225-4965'), 'Nancy Pelosi', 'United States House of Representatives CA-12'])
+	insertR('call',[None, datetime.now(), '1', '2', formatphonenumber('(202) 224-3553'), 'Barbara Boxer', 'United States Senate'])
 
 
 @app.cli.command('initdb')
@@ -94,15 +96,21 @@ def insertR(table, r, update=False):
 	"""
 	insertstr = {
 		"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?)",
-		"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?)",
+		"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?)",
 		"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?)",
 	}
-	if update and table=='caller': 
-		c = find(table, ONEORNONE, phone=r[0])
+	if update and table=='caller': # Enforce uniqueness on caller phone numbers
+		c = find(table, ONEORNONE, phone=r[1])
 		if c:
-			idUpdateFields(table, c['id'], phone=r[0], zipcode=r[1], calltime=r[2], active=r[3])
-			return c['id'] # Return the ID of the object
-	curs = sqlSend(insertstr[table], r)  # Can throw sqlite3.IntegrityError if doesnt match constraint in table structure
+			r[0] = c['id'] # Note ignores provided Replace Existing ID if a row is found with the same phone number
+	if r[0]>0: # If a valid ID is provided, try looking it up
+		existr = find(table, ONEORNONE, id=r[0])
+		if existr: # Found a row with that ID
+			cols = sqlSend('select * from '+table).fetchone().keys() # Get the column order for the table
+			newr = dict(zip(cols[1:], r[1:])) # Align and create a dictionary of the provided array and the column names
+			idUpdateFields(table, r[0], **newr)
+			return r[0]
+	curs = sqlSend(insertstr[table], r[1:])  # Can throw sqlite3.IntegrityError if doesnt match constraint in table structure
 	return curs.lastrowid
 
 def idUpdateFields(table, id, _skipNone=False, **kwargs):
@@ -251,13 +259,16 @@ def listTargets(campaign, caller):
 	Takes in a campaign and address, and suggests who should be called with phone numbers in the form:
 	{u'Joe Manchin III': [u'(202) 224-3954'], u'Shelley Moore Capito': [u'(202) 224-6472', u'(304) 347-5372', u'(304) 262-9285']}
 	"""
-	cd = getCivicData(caller['zipcode'])
-	officialsenum = [(k['officialIndices'],k['name']) for k in cd['offices'] if ('roles' in k) and ([i for i in k['roles'] if i in campaign['offices']])]
 	targets = []
-	for indices,office in officialsenum:
-		for i in indices:
-			if ('phones' in cd['officials'][i]) and (cd['officials'][i]['party'] in campaign['targetparties']):
-				targets = targets+[{'name':cd['officials'][i]['name'], 'phones':cd['officials'][i]['phones'], 'office':office}]
+	if campaign['targetname'] and campaign['targetphone']:
+		targets = [{'name':campaign['targetname'], 'phones':[campaign['targetphone']], 'office':'N/A'}]
+	else:
+		cd = getCivicData(caller['zipcode'])
+		officialsenum = [(k['officialIndices'],k['name']) for k in cd['offices'] if ('roles' in k) and ([i for i in k['roles'] if i in campaign['offices']])]
+		for indices,office in officialsenum:
+			for i in indices:
+				if ('phones' in cd['officials'][i]) and (cd['officials'][i]['party'] in campaign['targetparties']):
+					targets = targets+[{'name':cd['officials'][i]['name'], 'phones':[formatphonenumber(ph) for ph in cd['officials'][i]['phones']], 'office':office}]
 	return targets
 
 def listCampaignsByCallerId(callerid):
@@ -297,6 +308,16 @@ def campaign(id, nullbehavior=ONLYONE):
 	Set to nullbehavior to ONEORNONE if you want return None instead of erroring
 	"""
 	return find('campaign', nullbehavior, id=id)
+
+def formatphonenumber(ph, raiseerr=True):
+	num = re.sub("\D", "", str(ph))
+	if len(num) == 10:
+		num = "+1"+num
+	elif len(num) == 11 and num[0] == "1":
+		num = "+"+num
+	elif raiserrr:
+		raise UserWarning
+	return num
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
 
@@ -352,8 +373,12 @@ def registerNewUser():
 	"""
 	This function brings in a new user
 	"""
+	if request.form.get('callerid'): 
+		callerid = int(request.form.get('callerid'))
+	else: 
+		callerid = None
 	zc = request.form.get('zipcode')
-	ph = request.form.get('phonenumber')
+	ph = formatphonenumber(request.form.get('phonenumber'))
 	ampm = int(request.form.get('ampm'))
 	hh = int(request.form.get('hour'))
 	mm = int(request.form.get('minute'))
@@ -363,7 +388,7 @@ def registerNewUser():
 	except:
 		raise UserWarning('Invalid Zip') # do we need to make an actual error class?
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
-	insertR('caller',[ph,zc,calltime,ACTIVE],update=True)
+	insertR('caller',[callerid,ph,zc,calltime,ACTIVE],update=True)
 	return redirect('./static/thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
@@ -373,13 +398,19 @@ def registerNewCampaign():
 	"""
 	if not session.get('logged_in'):
 		abort(401)
+	if request.form.get('campaignid'): 
+		campaignid = int(request.form.get('campaignid'))
+	else: 
+		campaignid = None	
 	message = request.form.get('message')
 	startdate = int(time())+int(request.form.get('startdate') or 0)*24*60*60 # Defaults campaign start date to right now
 	enddate = startdate+int(request.form.get('enddate') or 30)*24*60*60 # Defaults campaign lifespan to 30 days
 	callobjective = int(request.form.get('callobjective') or 1000)  # Defaults to 1000 call objective
 	offices = ', '.join(request.form.getlist('offices[]'))
 	targetparties = ', '.join(request.form.getlist('targetparties[]'))
-	insertR('campaign',[message,startdate,enddate,callobjective,offices,targetparties])
+	targetname = request.form.get('targetname')
+	targetphone = formatphonenumber(request.form.get('targetphone'))
+	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone])
 	return redirect('./static/thanks.html')
 
 @app.route('/thanks')
@@ -463,10 +494,11 @@ def callscript():
 		# Dial (310) 555-1212 - connect that number to the incoming caller.
 		resp.say("Connecting you to " + targets[0]['name'] + ' of ' + targets[0]['office'])
 		resp.dial(targets[0]['phones'][0])
-		insertR('call',[datetime.now(),clr['id'],camp['id'],target['phone'],target['name'],target['office'],])
+		insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phone'],targets[0]['name'],targets[0]['office'],])
 	else:
 		# XXX The campaign should not get this far, if the caller has no targets for it.
 		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")		
+
 	return str(resp)
 	# return ("campaign " + str(camp) )
 

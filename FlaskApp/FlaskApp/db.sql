@@ -18,7 +18,9 @@ CREATE TABLE campaign (
   enddate int,
   callobjective integer,
   offices text,
-  targetparties text
+  targetparties text,
+  targetname text,
+  targetphone text
 ) ;
 
 CREATE TABLE call (
