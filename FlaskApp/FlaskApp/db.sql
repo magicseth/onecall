@@ -2,6 +2,7 @@ drop table if exists call;
 -- call must come first because of foreign key dependency!
 drop table if exists campaign;
 drop table if exists caller;
+drop table if exists login;
 
 CREATE TABLE caller (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -31,4 +32,10 @@ CREATE TABLE call (
   targetphone text,
   targetname text,
   targetoffice text
+) ;
+
+CREATE TABLE login (
+  id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  username text UNIQUE NOT NULL,
+  passhash integer NOT NULL
 ) ;

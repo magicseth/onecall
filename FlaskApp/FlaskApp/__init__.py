@@ -1,11 +1,12 @@
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 from pyzipcode import ZipCodeDatabase
+from passlib.apps import custom_app_context as pwd_context
 from urllib2 import Request, urlopen, URLError
 from twilio.rest import TwilioRestClient
 from oct_constants import NULLNONE, ONEORNONE, ONLYONE, ACTIVE
 from oct_utils import sqlpair, flatten2d, checkNull
-from oct_local import dir_path, script_path
+from oct_local import dir_path
 from datetime import datetime, timedelta
 from time import time
 import csv
@@ -21,7 +22,6 @@ app.config.from_object(__name__)
 app.config.update({
     'DATABASE': os.path.join(app.root_path, 'onecall.sqlt'),
     'SECRET_KEY':'development key',
-    'UP': {'jona':'jona', 'seth':'seth'}
     })
 
 execfile(os.path.join(dir_path, 'SECRETS.py'))
@@ -57,6 +57,8 @@ def init_db():
 	db.commit()
 
 def populateTestDB():
+	insertR('login',[None, 'admin', encrypt('admin')])
+
 	insertR('caller',[None, formatphonenumber('1000000000'), '94107', '2016-11-26 13:00:00', 1])
 	insertR('caller',[None, formatphonenumber('1000000001'), '10001', '2016-11-26 13:00:00', 1])
 	insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
@@ -98,6 +100,7 @@ def insertR(table, r, update=False):
 		"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?)",
 		"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?)",
 		"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?)",
+		"login": "INSERT INTO login VALUES (NULL,?,?)",
 	}
 	if update and table=='caller': # Enforce uniqueness on caller phone numbers
 		c = find(table, ONEORNONE, phone=r[1])
@@ -311,6 +314,27 @@ def formatphonenumber(ph, raiseerr=True):
 	elif raiseerr:
 		raise UserWarning
 	return num
+
+def checkpw(username, password):
+    # Check a password against previously generated hash
+	user = find('login', ONEORNONE, username=username)
+	if user is None:
+		raise UserWarning # unrecognized username
+
+	if password is None:
+	    raise UserWarning # no password supplied
+
+	ver = pwd_context.verify(password, user['passhash'])
+	if ver is False:
+		raise UserWarning # wrong password supplied
+	return True
+
+def encrypt(password):
+    """
+    Hash the password before storing in the database
+    """
+    return None if password is None else pwd_context.encrypt(password)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
 
@@ -325,9 +349,9 @@ def login():
 @app.route('/checkLogin', methods=['GET', 'POST'])
 def checkLogin():
     if request.method == 'POST':
-        if request.form['username'] in app.config['UP'] and request.form['password'] == app.config['UP'][request.form['username']]:
-            session['logged_in'] = True
-            return redirect('/dashboard')
+    	if checkpw(request.form['username'], request.form['password']): # Will raise UserWarning if fails
+    		session['logged_in'] = True
+    		return redirect('/dashboard')
     return redirect('/login')
 
 @app.route("/dashboard")
@@ -410,6 +434,25 @@ def registerNewCampaign():
 		raise UserWarning
 
 	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone])
+	return redirect('./static/thanks.html')
+
+@app.route('/registerNewLogin', methods=['GET', 'POST'])
+def registerNewLogin():
+	"""
+	This function brings in a new login (admin level until permissions are defined)
+	"""
+	if not session.get('logged_in'):
+		abort(401)
+	username = request.form.get('username')
+	password = request.form.get('password')
+	if (username=='') or (password==''): 
+		raise UserWarning # Must provide both inputs
+
+	print username
+	print password
+	print encrypt(password)
+
+	insertR('login',[None,username, encrypt(password)])
 	return redirect('./static/thanks.html')
 
 @app.route('/thanks')
