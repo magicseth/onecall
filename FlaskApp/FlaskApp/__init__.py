@@ -448,11 +448,30 @@ def registerNewLogin():
 	if (username=='') or (password==''): 
 		raise UserWarning # Must provide both inputs
 
-	print username
-	print password
-	print encrypt(password)
-
 	insertR('login',[None,username, encrypt(password)])
+	return redirect('./static/thanks.html')
+
+@app.route('/editTableValue', methods=['GET', 'POST'])
+def editTableValue():
+	"""
+	This function edits a single table:field:value
+	"""
+	if not session.get('logged_in'):
+		abort(401)
+	table = request.form.get('table')
+	id = request.form.get('id')
+	field = request.form.get('field')
+	value = request.form.get('value')
+	if (table=='') or (id=='') or (field==''): 
+		raise UserWarning # Must provide these inputs
+	if (value==''):
+		value = None
+	if table=='login':
+		value = encrypt(value)
+	if field in ['id','calltime','tstamp']:
+		raise UserWarning # Provided Field is not supported yet
+
+	idUpdateFields(table, id, **{field:value})
 	return redirect('./static/thanks.html')
 
 @app.route('/thanks')
