@@ -38,6 +38,24 @@
   color: #666;
 }
 
+.red {
+  background:#fcc;
+}
+
+.blue {
+  background:#dde;
+}
+
+.white {
+  background:#fff;
+}
+
+.colorblock {
+    font-size:25px; 
+    margin: -30px;
+    padding: 35px;
+} 
+
 .debug {
   background-color: #900;
 }
@@ -56,7 +74,7 @@ input[type=number]::-webkit-outer-spin-button {
   margin: 0;
   }
 
-.main { padding-top: 5%; left: 30px}
+.main { padding-top: 5%; margin-bottom: 100; left: 30px}
 
 .error_container {
   left: 0px;
