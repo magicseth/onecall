@@ -258,17 +258,16 @@ def printall(): # Prints the entire database to the console window
 	cursor = db.cursor()
 	cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 	tables = cursor.fetchall()
-	print '\n'*2
-	print '='*100
+	text = '<br>'*2
 	for t in tables:
 		name = t[0]
 		if name != 'sqlite_sequence':
-			print 'Name: ', name
+			text = text+'<br>'+'Name: '+name+'<br>'
 			cursor.execute("SELECT * FROM "+name)
-			print 'Columns: ', [description[0] for description in cursor.description]
-			print 'Data: ', cursor.fetchall()
-		print '-'*100
-	return 
+			text = text+'Columns: '+'<br>'+' | '.join([description[0] for description in cursor.description])+'<br>'
+			text = text+'Data: '+'<br>'+'<br>'.join([' | '.join([str(f) for f in row]) for row in cursor.fetchall()])+'<br>'
+		text = text+'-'*100
+	return text
 
 def getCivicData(address):
 	# https://developers.google.com/civic-information/docs/v2/representatives/representativeInfoByAddress
@@ -406,8 +405,8 @@ def dumpdb():
 	"""
 	This DANGEROUS function prints to the browser window the entirety of the redis database
 	"""
-	print printall()
-	return redirect('/dashboard')
+	print printall().replace("<br>", "\n")
+	return printall()
 
 @app.route("/flush")
 @must_login()
