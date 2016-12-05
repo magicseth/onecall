@@ -539,15 +539,16 @@ def findcallers():
 	Finally, it prints the results to screen (XXX SHOULD execute call instead)
 	"""
 	now = datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
+	text = str(now)+'<br>'
 	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
 		campaigns = listCampaigns(c)
 		for campaign in campaigns:
 			targets = listTargets(campaign,c) if campaigns else []
 			for target in targets: 
-				print c['phone'], ' should call ', target['name'], ' of ', target['office'], ' at ', target['phones'], ' about ', campaign['message']
-				print ""
-	print "NO MORE CALLS TO BE MADE"
-	return redirect('/dashboard')
+				text = text+ c['phone'], ' should call ', target['name'], ' of ', target['office'], ' at ', target['phones'], ' about ', campaign['message']+'<br>'
+	text = text+"NO MORE CALLS TO BE MADE"+'<br>'
+	print text.replace("<br>", "\n")
+	return text
 
 @app.route("/callpaul", methods=['GET', 'POST'])
 @must_login()
