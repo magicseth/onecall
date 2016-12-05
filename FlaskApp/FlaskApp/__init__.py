@@ -1,5 +1,5 @@
-from flask import Flask, request, session, g, redirect, url_for, abort, \
-     render_template, flash
+from flask import Flask, request, session, g, redirect, url_for, \
+	render_template
 from pyzipcode import ZipCodeDatabase
 from passlib.apps import custom_app_context as pwd_context
 from urllib2 import Request, urlopen, URLError
@@ -20,14 +20,34 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 # Load default config and override config from an environment variable
 app.config.update({
-    'DATABASE': os.path.join(app.root_path, 'onecall.sqlt'),
-    'SECRET_KEY':'development key',
-    })
+	'DATABASE': os.path.join(app.root_path, 'onecall.sqlt'),
+	'SECRET_KEY':'development key',
+	})
 
 execfile(os.path.join(dir_path, 'SECRETS.py'))
 
 account_sid = os.environ['TWILIO_SID']
 auth_token = os.environ['TWILIO_AUTH']
+
+
+### CLASSES ###
+class DisplayError(Exception):
+	def __init__(self, message, html, payload=None):
+		Exception.__init__(self)
+		self.message = message
+		self.html = html
+		self.payload = payload
+
+	def to_dict(self):
+		rv = dict(self.payload or ())
+		rv['message'] = self.message
+		rv['html'] = self.html
+		return rv
+
+@app.errorhandler(DisplayError)
+def handle_error_for_display(error):
+	response = error.to_dict()
+	return render_template(response['html'], error = response['message'])
 
 ### DB Maintenance ###
 
@@ -63,7 +83,7 @@ def populateTestDB():
 	insertR('caller',[None, formatphonenumber('1000000001'), '10001', '2016-11-26 13:00:00', 1])
 	insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
 	insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
-	insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],True)
+	insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'landing.html')
 	
 	insertR('campaign',[None, 'Gun control is super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
 	insertR('campaign',[None, 'Civil rights are super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
@@ -183,7 +203,7 @@ def sqlFetch(sql, parms=None):
 	"""
 	curs = sqlSend(sql, parms)  # Will always return -1 on SELECT
 	dd = [dict((curs.description[i][0], value) \
-               for i, value in enumerate(row)) for row in curs.fetchall()]
+				for i, value in enumerate(row)) for row in curs.fetchall()]
 	return dd
 
 def find(table, nullbehavior, _skipNone=False, **kwargs):
@@ -250,9 +270,9 @@ def getCivicData(address):
 		response = urlopen(req)
 	except URLError as e:
 		if hasattr(e, 'reason'):
-			print("\nERROR:\n" + e.reason + "\n")
+			raise DisplayError(e.reason, 'landing.html')
 		elif hasattr(e, 'code'):
-			print("\nERROR: \nThe server couldn't fulfill the request. \n" + e.code + "\n")
+			raise DisplayError("The server couldn't fulfill the request", 'landing.html')
 		return None  # Error
 	else: # everything is fine
 		return json.loads(response.read().decode('utf8'))
@@ -305,35 +325,36 @@ def campaign(id, nullbehavior=ONLYONE):
 	"""
 	return find('campaign', nullbehavior, id=id)
 
-def formatphonenumber(ph, raiseerr=True):
+def formatphonenumber(ph, raiseerr=False):
 	num = re.sub("\D", "", str(ph))
 	if len(num) == 10:
 		num = "+1"+num
 	elif len(num) == 11 and num[0] == "1":
 		num = "+"+num
 	elif raiseerr:
-		raise UserWarning
+		raise DisplayError("Invalid phone number", raiseerr)
 	return num
 
 def checkpw(username, password):
-    # Check a password against previously generated hash
+	# Check a password against previously generated hash
 	user = find('login', ONEORNONE, username=username)
 	if user is None:
-		raise UserWarning # unrecognized username
+		raise DisplayError("Unrecognized Username", 'login.html')
 
 	if password is None:
-	    raise UserWarning # no password supplied
+		raise DisplayError("Password required", 'login.html')
 
 	ver = pwd_context.verify(password, user['passhash'])
 	if ver is False:
-		raise UserWarning # wrong password supplied
+		raise DisplayError("Password not recognized",'login.html')
 	return True
 
 def encrypt(password):
-    """
-    Hash the password before storing in the database
-    """
-    return None if password is None else pwd_context.encrypt(password)
+	"""
+	Hash the password before storing in the database
+	"""
+	return None if password is None else pwd_context.encrypt(password)
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
@@ -344,27 +365,28 @@ def populatelanding():
 
 @app.route("/login")
 def login():
-	return render_template('login.html')
+	if not session.get('logged_in'):
+		return render_template('login.html')
+	else:
+		return render_template('dashboard.html')
 
 @app.route('/checkLogin', methods=['GET', 'POST'])
 def checkLogin():
-    if request.method == 'POST':
-    	if checkpw(request.form['username'], request.form['password']): # Will raise UserWarning if fails
-    		session['logged_in'] = True
-    		return redirect('/dashboard')
-	error = 'Invalid username or password. Please try again!'
-	return render_template('login.html', error = error)
+	if request.method == 'POST':
+		if checkpw(request.form['username'], request.form['password']): # Will raise DisplayError if fails
+			session['logged_in'] = True
+			return redirect('/dashboard')
 
 @app.route("/dashboard")
 def dashboard():
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	return render_template('dashboard.html')
 
 @app.route('/logout')
 def logout():
-    session.pop('logged_in', None)
-    return redirect('/')
+	session.pop('logged_in', None)
+	return render_template('landing.html')
 
 @app.route("/dump")
 def dumpdb():
@@ -372,7 +394,7 @@ def dumpdb():
 	This DANGEROUS function prints to the browser window the entirety of the redis database
 	"""
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	print printall()
 	return redirect('/dashboard')
 
@@ -382,6 +404,7 @@ def flushdb():
 	This XXX DANGEROUS function deletes all database content
 	"""
 	if not session.get('logged_in'):
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 		abort(401)
 	os.system('flask initdb')
 	return redirect('/dashboard')
@@ -396,7 +419,7 @@ def registerNewUser():
 	else: 
 		callerid = None
 	zc = request.form.get('zipcode')
-	ph = formatphonenumber(request.form.get('phonenumber'))
+	ph = formatphonenumber(request.form.get('phonenumber'),'landing.html')
 	ampm = int(request.form.get('ampm'))
 	hh = int(request.form.get('hour'))
 	mm = int(request.form.get('minute'))
@@ -404,7 +427,7 @@ def registerNewUser():
 		delta = ZipCodeDatabase()[zc].timezone
 		# ZipCode object fields: zip, city, state, longitude, latitude, timezone, dst
 	except:
-		raise UserWarning('Invalid Zip') # do we need to make an actual error class?
+		raise DisplayError("Unrecognized Zipcode", 'landing.html')
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
 	insertR('caller',[callerid,ph,zc,calltime,ACTIVE],update=True)
 	return render_template('thanks.html')
@@ -415,7 +438,7 @@ def registerNewCampaign():
 	This function brings in a new campaign
 	"""
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	if request.form.get('campaignid'): 
 		campaignid = int(request.form.get('campaignid'))
 	else: 
@@ -427,12 +450,12 @@ def registerNewCampaign():
 	offices = ', '.join(request.form.getlist('offices[]'))
 	targetparties = ', '.join(request.form.getlist('targetparties[]'))
 	
-	required = (offices=='' or targetparties=='') # If there is no office or party selected, then it must be a targeted campaign
+	required = 'dashboard.html' if (offices=='' or targetparties=='') else False # If there is no office or party selected, then it must be a targeted campaign
 	targetname = request.form.get('targetname')
 	targetphone = formatphonenumber(request.form.get('targetphone'), raiseerr=required)
 
 	if required and (targetname==''): # Must be a targeted campaign, but no name provided
-		raise UserWarning
+		raise DisplayError("Name required for targeted campaigns", 'dashboard.html')
 
 	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone])
 	return render_template('thanks.html')
@@ -443,11 +466,11 @@ def registerNewLogin():
 	This function brings in a new login (admin level until permissions are defined)
 	"""
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	username = request.form.get('username')
 	password = request.form.get('password')
 	if (username=='') or (password==''): 
-		raise UserWarning # Must provide both inputs
+		raise DisplayError("Both Username and Password required", 'dashboard.html')
 
 	insertR('login',[None,username, encrypt(password)])
 	return render_template('thanks.html')
@@ -458,19 +481,19 @@ def editTableValue():
 	This function edits a single table:field:value
 	"""
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	table = request.form.get('table')
 	id = request.form.get('id')
 	field = request.form.get('field')
 	value = request.form.get('value')
 	if (table=='') or (id=='') or (field==''): 
-		raise UserWarning # Must provide these inputs
+		raise DisplayError("Table, ID, and Field all required", 'dashboard.html')
 	if (value==''):
 		value = None
 	if table=='login':
 		value = encrypt(value)
 	if field in ['id','calltime','tstamp']:
-		raise UserWarning # Provided Field is not supported yet
+		raise DisplayError("ID, Calltime, and Tstamp are not supported yet", 'dashboard.html')
 
 	idUpdateFields(table, id, **{field:value})
 	return render_template('thanks.html')
@@ -492,7 +515,7 @@ def findcallers():
 	Finally, it prints the results to screen (XXX SHOULD execute call instead)
 	"""
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	now = datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
 	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
 		campaigns = listCampaigns(c)
@@ -508,7 +531,7 @@ def findcallers():
 def hello_monkey():
 	"""Respond to incoming requests."""
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	resp = twilio.twiml.Response()
 	resp.say("It's time to call Jona")
 	# Dial (310) 555-1212 - connect that number to the incoming caller.
@@ -518,7 +541,7 @@ def hello_monkey():
 @app.route("/textseth", methods=['GET'])
 def text_seth():
 	if not session.get('logged_in'):
-		abort(401)
+		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	"Send a text message to seth"
 	client = TwilioRestClient(account_sid, auth_token)
 	message = client.messages.create(to="+16177107496", from_="+16179256394",

@@ -7,6 +7,11 @@
       <!--<script src="lumeter.js"></script>-->
   </head>
   <body id="body">
+    <div class='error_container center'>
+      {% if error %}
+        <p><strong>Error:</strong> {{ error }}
+      {% endif %}
+    </div>
     <div class="center main">
       <h2>Be heard:</h2>
       <h1>One call today</h1>

@@ -74,7 +74,7 @@ def checkNull(rr, where, nullbehavior):
     """
     if nullbehavior == FINDERR:
         if len(rr) > 0:
-                raise UserWarning
+            raise UserWarning
         else:
             return None
     if (len(rr) == 0) and (nullbehavior != NULLNONE):
