@@ -1,5 +1,6 @@
 from flask import Flask, request, session, g, redirect, url_for, \
-	render_template
+	render_template, send_from_directory
+from functools import wraps
 from pyzipcode import ZipCodeDatabase
 from passlib.apps import custom_app_context as pwd_context
 from urllib2 import Request, urlopen, URLError
@@ -48,6 +49,16 @@ class DisplayError(Exception):
 def handle_error_for_display(error):
 	response = error.to_dict()
 	return render_template(response['html'], error = response['message'])
+
+def must_login():
+	def wrapper(f):
+		@wraps(f)
+		def wrapped(*args, **kwargs):
+			if not session.get('logged_in'):
+				raise DisplayError("Must be logged in to execute this action", 'login.html')
+			return f(*args, **kwargs)
+		return wrapped
+	return wrapper
 
 ### DB Maintenance ###
 
@@ -361,7 +372,10 @@ def encrypt(password):
 
 @app.route("/")
 def populatelanding():
-	return render_template('landing.html')
+	if not session.get('logged_in'):
+		return render_template('landing.html')
+	else:
+		return render_template('dashboard.html')
 
 @app.route("/login")
 def login():
@@ -372,15 +386,13 @@ def login():
 
 @app.route('/checkLogin', methods=['GET', 'POST'])
 def checkLogin():
-	if request.method == 'POST':
-		if checkpw(request.form['username'], request.form['password']): # Will raise DisplayError if fails
-			session['logged_in'] = True
-			return redirect('/dashboard')
+	if checkpw(request.form['username'], request.form['password']): # Will raise DisplayError if fails
+		session['logged_in'] = True
+		return redirect('/dashboard')
 
 @app.route("/dashboard")
+@must_login()
 def dashboard():
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	return render_template('dashboard.html')
 
 @app.route('/logout')
@@ -389,25 +401,40 @@ def logout():
 	return render_template('landing.html')
 
 @app.route("/dump")
+@must_login()
 def dumpdb():
 	"""
 	This DANGEROUS function prints to the browser window the entirety of the redis database
 	"""
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	print printall()
 	return redirect('/dashboard')
 
 @app.route("/flush")
+@must_login()
 def flushdb():
 	"""
 	This XXX DANGEROUS function deletes all database content
 	"""
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
-		abort(401)
+	os.system('cp -n onecall.sqlt ./backups/onecall_flushed_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt') # copy to backup file
 	os.system('flask initdb')
 	return redirect('/dashboard')
+
+@app.route("/backup")
+@must_login()
+def backup():
+	"""
+	This backsup all database content
+	"""
+	os.system('cp -f onecall.sqlt ./backups/onecall_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt') # copy to backup file
+	return redirect('/dashboard')
+
+@app.route("/downloaddb")
+@must_login()
+def downloaddb():
+	"""
+	This downloads all database content for local testing
+	"""
+	return send_from_directory(directory='.', filename='onecall.sqlt')
 
 @app.route('/registerNewUser', methods=['GET', 'POST'])
 def registerNewUser():
@@ -433,12 +460,11 @@ def registerNewUser():
 	return render_template('thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
+@must_login()
 def registerNewCampaign():
 	"""
 	This function brings in a new campaign
 	"""
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	if request.form.get('campaignid'): 
 		campaignid = int(request.form.get('campaignid'))
 	else: 
@@ -461,12 +487,11 @@ def registerNewCampaign():
 	return render_template('thanks.html')
 
 @app.route('/registerNewLogin', methods=['GET', 'POST'])
+@must_login()
 def registerNewLogin():
 	"""
 	This function brings in a new login (admin level until permissions are defined)
 	"""
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	username = request.form.get('username')
 	password = request.form.get('password')
 	if (username=='') or (password==''): 
@@ -476,12 +501,11 @@ def registerNewLogin():
 	return render_template('thanks.html')
 
 @app.route('/editTableValue', methods=['GET', 'POST'])
+@must_login()
 def editTableValue():
 	"""
 	This function edits a single table:field:value
 	"""
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	table = request.form.get('table')
 	id = request.form.get('id')
 	field = request.form.get('field')
@@ -506,6 +530,7 @@ def thanksredirect():
 		return redirect('/dashboard')
 
 @app.route("/findcallers")
+@must_login()
 def findcallers():
 	"""
 	This function is called by the cron to look for callers. 
@@ -514,8 +539,6 @@ def findcallers():
 	It then finds all the targets for those campaigns
 	Finally, it prints the results to screen (XXX SHOULD execute call instead)
 	"""
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	now = datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
 	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
 		campaigns = listCampaigns(c)
@@ -528,10 +551,9 @@ def findcallers():
 	return redirect('/dashboard')
 
 @app.route("/callpaul", methods=['GET', 'POST'])
+@must_login()
 def hello_monkey():
 	"""Respond to incoming requests."""
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	resp = twilio.twiml.Response()
 	resp.say("It's time to call Jona")
 	# Dial (310) 555-1212 - connect that number to the incoming caller.
@@ -539,9 +561,8 @@ def hello_monkey():
 	return str(resp)
 
 @app.route("/textseth", methods=['GET'])
+@must_login()
 def text_seth():
-	if not session.get('logged_in'):
-		raise DisplayError("Must be logged in to execute this action", 'login.html')
 	"Send a text message to seth"
 	client = TwilioRestClient(account_sid, auth_token)
 	message = client.messages.create(to="+16177107496", from_="+16179256394",
