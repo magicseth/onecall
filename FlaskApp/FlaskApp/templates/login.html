@@ -7,6 +7,11 @@
       <!--<script src="lumeter.js"></script>-->
   </head>
   <body id="body">
+    <div class='error_container'>
+      {% if error %}
+        <p><strong>Error:</strong> {{ error }}
+      {% endif %}
+    </div>
     <div class="center main">
       <h1>Login</h1>
       <form action="checkLogin" method="Post">

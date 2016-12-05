@@ -340,11 +340,11 @@ def encrypt(password):
 
 @app.route("/")
 def populatelanding():
-	return app.send_static_file('landing.html')
+	return render_template('landing.html')
 
 @app.route("/login")
 def login():
-	return app.send_static_file('login.html')
+	return render_template('login.html')
 
 @app.route('/checkLogin', methods=['GET', 'POST'])
 def checkLogin():
@@ -352,13 +352,14 @@ def checkLogin():
     	if checkpw(request.form['username'], request.form['password']): # Will raise UserWarning if fails
     		session['logged_in'] = True
     		return redirect('/dashboard')
-    return redirect('/login')
+	error = 'Invalid username or password. Please try again!'
+	return render_template('login.html', error = error)
 
 @app.route("/dashboard")
 def dashboard():
 	if not session.get('logged_in'):
 		abort(401)
-	return app.send_static_file('dashboard.html')
+	return render_template('dashboard.html')
 
 @app.route('/logout')
 def logout():
@@ -406,7 +407,7 @@ def registerNewUser():
 		raise UserWarning('Invalid Zip') # do we need to make an actual error class?
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
 	insertR('caller',[callerid,ph,zc,calltime,ACTIVE],update=True)
-	return redirect('./static/thanks.html')
+	return render_template('thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
 def registerNewCampaign():
@@ -434,7 +435,7 @@ def registerNewCampaign():
 		raise UserWarning
 
 	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone])
-	return redirect('./static/thanks.html')
+	return render_template('thanks.html')
 
 @app.route('/registerNewLogin', methods=['GET', 'POST'])
 def registerNewLogin():
@@ -449,7 +450,7 @@ def registerNewLogin():
 		raise UserWarning # Must provide both inputs
 
 	insertR('login',[None,username, encrypt(password)])
-	return redirect('./static/thanks.html')
+	return render_template('thanks.html')
 
 @app.route('/editTableValue', methods=['GET', 'POST'])
 def editTableValue():
@@ -472,7 +473,7 @@ def editTableValue():
 		raise UserWarning # Provided Field is not supported yet
 
 	idUpdateFields(table, id, **{field:value})
-	return redirect('./static/thanks.html')
+	return render_template('thanks.html')
 
 @app.route('/thanks')
 def thanksredirect():
