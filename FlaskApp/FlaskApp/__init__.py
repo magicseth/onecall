@@ -95,11 +95,11 @@ def populateTestDB():
 	insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
 	insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
 	insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'landing.html')
-	
-	insertR('campaign',[None, 'Sample script: Hello, my name is John or Jane Smith and I\'m calling from ABC organization in PDQ state regarding XYZ issue. Gun control is super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
-	insertR('campaign',[None, 'Civil rights are super important', 0, 1480153004+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
-	insertR('campaign',[None, 'Freedom of speech is super important', 1480153004+604800, 1480153004+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican', None, None])
-	insertR('campaign',[None, 'Calling Jona is super important', 0, 1480153004+604800, 1000, None, None, 'Jona Raphael', formatphonenumber('16178432883')])
+
+	insertR('campaign',[None, 'Sample script: Hello, my name is John or Jane Smith and I\'m calling from ABC organization in PDQ state regarding XYZ issue. Gun control is super important', 0, int(time()+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
+	insertR('campaign',[None, 'Civil rights are super important', 0, int(time())+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
+	insertR('campaign',[None, 'Freedom of speech is super important', int(time())+604800, int(time())+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican', None, None])
+	insertR('campaign',[None, 'Calling Jona is super important', 0, int(time())+604800, 1000, 'Office of Important Matters', None, 'Jona Raphael', formatphonenumber('16178432883')])
 
 	insertR('call',[None, datetime.now(), '1', '1', formatphonenumber('(202) 225-4965'), 'Nancy Pelosi', 'United States House of Representatives CA-12'])
 	insertR('call',[None, datetime.now(), '1', '2', formatphonenumber('(202) 224-3553'), 'Barbara Boxer', 'United States Senate'])
@@ -294,7 +294,7 @@ def listTargets(campaign, caller):
 	"""
 	targets = []
 	if campaign['targetname'] and campaign['targetphone']:
-		targets = [{'name':campaign['targetname'], 'phones':[campaign['targetphone']], 'office':'N/A'}]
+		targets = [{'name':campaign['targetname'], 'phones':[campaign['targetphone']], 'office': campaign['offices'] or 'N/A'}]
 	else:
 		cd = getCivicData(caller['zipcode'])
 		officialsenum = [(k['officialIndices'],k['name']) for k in cd['offices'] if ('roles' in k) and ([i for i in k['roles'] if i in campaign['offices']])]
@@ -545,7 +545,7 @@ def findcallers():
 		for campaign in campaigns:
 			targets = listTargets(campaign,c) if campaigns else []
 			for target in targets: 
-				text = text+ c['phone'], ' should call ', target['name'], ' of ', target['office'], ' at ', target['phones'], ' about ', campaign['message']+'<br>'
+				text = text+ c['phone']+' should call '+target['name']+' of '+target['office']+' at '+' or '.join(target['phones'])+' about '+campaign['message']+'<br>'
 	text = text+"NO MORE CALLS TO BE MADE"+'<br>'
 	print text.replace("<br>", "\n")
 	return text
