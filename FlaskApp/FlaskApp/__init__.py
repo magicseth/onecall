@@ -96,7 +96,7 @@ def populateTestDB():
 	insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
 	insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'landing.html')
 
-	insertR('campaign',[None, 'Sample script: Hello, my name is John or Jane Smith and I\'m calling from ABC organization in PDQ state regarding XYZ issue. Gun control is super important', 0, int(time()+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
+	insertR('campaign',[None, 'Sample script: Hello, my name is John or Jane Smith and I\'m calling from ABC organization in PDQ state regarding XYZ issue. Gun control is super important', 0, int(time())+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
 	insertR('campaign',[None, 'Civil rights are super important', 0, int(time())+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
 	insertR('campaign',[None, 'Freedom of speech is super important', int(time())+604800, int(time())+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican', None, None])
 	insertR('campaign',[None, 'Calling Jona is super important', 0, int(time())+604800, 1000, 'Office of Important Matters', None, 'Jona Raphael', formatphonenumber('16178432883')])
