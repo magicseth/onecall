@@ -563,10 +563,16 @@ def hello_monkey():
 @app.route("/incomingsms", methods=['POST'])
 def receive_sms():
 	number = request.form['From']
-	message_body = request.form['Body']
+	message_body = request.form['Body'].strip().lower()
 	resp = twilio.twiml.Response()
 	resp.message('Hello, {}, you said: {}'.format(number, message_body))
 	app.logger.error('Hello {}, you said: {}'.format(number, message_body))
+	if message_body == "stop":
+		### mark login as inactive
+		pass
+	if message_body == "start":
+		### mark login as active
+		pass
 	return str(resp)
 
 @app.route("/textseth", methods=['GET'])
