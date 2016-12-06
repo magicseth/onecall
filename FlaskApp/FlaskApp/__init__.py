@@ -560,6 +560,15 @@ def hello_monkey():
 	resp.dial("+16178432883")
 	return str(resp)
 
+@app.route("/incomingsms", methods=['POST'])
+def receive_sms():
+	number = request.form['From']
+	message_body = request.form['Body']
+	resp = twilio.twiml.Response()
+	resp.message('Hello, {}, you said: {}'.format(number, message_body))
+	app.logger.info('Hello {}, you said: {}'.format(number, message_body))
+	return str(resp)
+
 @app.route("/textseth", methods=['GET'])
 @must_login()
 def text_seth():
