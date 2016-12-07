@@ -16,6 +16,7 @@ import twilio.twiml
 import os
 import re
 import sqlite3
+import redis
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -111,6 +112,28 @@ def initdb_command():
 	init_db()
 	print 'Initialized the database.'
 	populateTestDB()
+
+@app.cli.command('checkforcalls')
+def check_for_calls():
+	"""Checks to see if it is time to kick off calls (once every 5 minutes)."""
+	print 'Checking for calls'
+	# get the current time
+	now = datetime.now()
+	# if the current time is a multiple of 5...
+	if now.minute % 5 == 0:
+		thistime = now.strftime('%Y:%m:%d:%H:%M')
+		# set it in redis to see if we have already kicked off calls
+		r = redis.Redis('localhost')
+		havelock = r.setnx(thistime, 1)
+		if havelock == 1:
+			print "We are going to make some calls at " + thistime
+		else:
+			print "we would have duplicated " + thistime
+		# if we haven't kicked off calls, then let's do it!
+	else:
+		print "Now is not the time to make calls"
+	
+
 
 @app.teardown_appcontext
 def close_db(error):
