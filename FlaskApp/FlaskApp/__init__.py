@@ -447,8 +447,10 @@ def flushdb():
 	"""
 	This XXX DANGEROUS function deletes all database content
 	"""
-	os.system('cp -n onecall.sqlt ./backups/onecall_flushed_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt') # copy to backup file
-	os.system('flask initdb')
+	a = os.system('cp -n onecall.sqlt ./backups/onecall_flushed_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt') # copy to backup file
+	app.logger.error(a)
+	b = os.system('flask initdb')
+	app.logger.error(b)
 	return redirect('/dashboard')
 
 @app.route("/backup")
