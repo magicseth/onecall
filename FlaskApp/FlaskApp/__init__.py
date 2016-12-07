@@ -409,26 +409,26 @@ def smsdispatch(num, smsin):
 	elif smsin == "start": ### mark login as active
 		smsout = "Welcome back! You can change your zipcode or call time by using the signup form at www.onecall.today, or stop making calls all together by replying to this SMS with 'STOP'"
 		idUpdateFields(caller['id'], active=WEEKDAY)
-	elif smsin == "history": ### show which calls I've made
-		smsout = "You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])])
 	elif smsin == "daily": ### makes you eligible for weekday calls
 		smsout = "Excellent. You're now signed up for calls every day of the week."
 		idUpdateFields(caller['id'], active=WEEKDAY)
 	elif smsin == "weekly": ### limits calls to 1 per week
 		smsout = "Excellent. You're now signed up for calls one day a week."
 		idUpdateFields(caller['id'], active=MONDAY)
+	elif smsin == "list": ### shows all available campaigns for me right now
+		smsout = "Here are your upcoming campaigns: "+', '.join([c['id'] for c in listCampaigns(caller)]) # XXX Should add nickname column? message is too long
+	elif smsin == "history": ### show which calls I've made
+		smsout = "You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])])
+	elif smsin == "feedback": ### lets you comment on the system
+		smsout = "Please send feedback to us via email: improve@onecall.today"
 	elif smsin == "next": ### gives you the next call to make
 		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
 	elif smsin == "texts": ### switches you to texts instead of automatic calls
 		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
 	elif smsin == "calls": ### switches you to calls instead of texts
 		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
-	elif smsin == "list": ### shows all available campaigns for me right now
-		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
-	elif smsin == "feedback": ### lets you comment on the system
-		smsout = "Please send feedback to us via email: improve@onecall.today"
 	else: # Send back list of possible commands
-		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY'"#, 'NEXT', 'TEXTS', 'CALLS', 'LIST', 'FEEDBACK'"
+		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY', 'LIST'"#, 'TEXTS', 'CALLS', 'NEXT', 'FEEDBACK'"
 	return smsout
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
