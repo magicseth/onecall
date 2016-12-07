@@ -596,13 +596,13 @@ def hello_monkey():
 
 @app.route("/incomingsms", methods=['POST', 'GET'])
 def receive_sms():
-    validator = RequestValidator(auth_token)
-    signature = request.headers.get('X-Twilio-Signature', '')
-    url = get_original_request_url(request)
-    # logger.info('Got request: url: %r, post: %r, signature: %r',
-    #             url, dict(request.form.iteritems()), signature)
-    if not validator.validate(url, request.form, signature):
-        return str('failure')
+	validator = RequestValidator(auth_token)
+	signature = request.headers.get('X-Twilio-Signature', '')
+	url = get_original_request_url(request)
+	# logger.info('Got request: url: %r, post: %r, signature: %r',
+	#             url, dict(request.form.iteritems()), signature)
+	if not validator.validate(url, request.form, signature):
+		return str('failure')
 	number = request.form['From']
 	message_body = request.form['Body'].strip().lower()
 	resp = twilio.twiml.Response()
