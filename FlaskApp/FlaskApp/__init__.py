@@ -5,6 +5,7 @@ from pyzipcode import ZipCodeDatabase
 from passlib.apps import custom_app_context as pwd_context
 from urllib2 import Request, urlopen, URLError
 from twilio.rest import TwilioRestClient
+from twilio.util import RequestValidator
 from oct_constants import NULLNONE, ONEORNONE, ONLYONE, ACTIVE
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path
@@ -389,6 +390,14 @@ def encrypt(password):
 	"""
 	return None if password is None else pwd_context.encrypt(password)
 
+def get_original_request_url(request):
+    # request.url does not exactly equal the opened URL,
+    # because the query string gets unescaped in some places.
+    url = request.url.split('?')[0]
+    qs = request.environ.get('QUERY_STRING', '')
+    if qs:
+        url = '%s?%s' % (url, qs)
+    return url
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
@@ -585,8 +594,17 @@ def hello_monkey():
 	resp.dial("+16178432883")
 	return str(resp)
 
-@app.route("/incomingsms", methods=['POST'])
+@app.route("/incomingsms", methods=['POST', 'GET'])
 def receive_sms():
+    validator = RequestValidator(auth_token)
+    signature = request.headers.get('X-Twilio-Signature', '')
+    url = get_original_request_url(request)
+    # logger.info('Got request: url: %r, post: %r, signature: %r',
+    #             url, dict(request.form.iteritems()), signature)
+    if not validator.validate(url, request.form, signature):
+        return str('failure')
+
+
 	number = request.form['From']
 	message_body = request.form['Body'].strip().lower()
 	resp = twilio.twiml.Response()
