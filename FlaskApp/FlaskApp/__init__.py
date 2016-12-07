@@ -603,8 +603,6 @@ def receive_sms():
     #             url, dict(request.form.iteritems()), signature)
     if not validator.validate(url, request.form, signature):
         return str('failure')
-
-
 	number = request.form['From']
 	message_body = request.form['Body'].strip().lower()
 	resp = twilio.twiml.Response()
