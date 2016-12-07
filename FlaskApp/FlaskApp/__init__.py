@@ -428,7 +428,7 @@ def smsdispatch(num, smsin):
 	elif smsin == "calls": ### switches you to calls instead of texts
 		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
 	else: # Send back list of possible commands
-		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY', 'LIST'"#, 'TEXTS', 'CALLS', 'NEXT', 'FEEDBACK'"
+		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY', 'LIST', 'FEEDBACK'"#, 'TEXTS', 'CALLS', 'NEXT'"
 	return smsout
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
