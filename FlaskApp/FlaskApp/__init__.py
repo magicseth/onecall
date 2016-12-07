@@ -6,7 +6,7 @@ from passlib.apps import custom_app_context as pwd_context
 from urllib2 import Request, urlopen, URLError
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
-from oct_constants import NULLNONE, ONEORNONE, ONLYONE, ACTIVE
+from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
@@ -399,6 +399,38 @@ def get_original_request_url(request):
         url = '%s?%s' % (url, qs)
     return url
 
+def smsdispatch(num, smsin):
+	caller = find('caller',ONEORNONE,phone=num)
+	if caller is None:
+		smsout = "Oops! We can't find this phone in our records. Please go to www.onecall.today to sign up!"
+	elif smsin == "stop": ### mark login as inactive
+		smsout = "Sorry to see you go! You can change your zipcode or call time by using the signup form at www.onecall.today, or start making calls again by replying to this SMS with 'START'"
+		idUpdateFields(caller['id'], active=INACTIVE)
+	elif smsin == "start": ### mark login as active
+		smsout = "Welcome back! You can change your zipcode or call time by using the signup form at www.onecall.today, or stop making calls all together by replying to this SMS with 'STOP'"
+		idUpdateFields(caller['id'], active=WEEKDAY)
+	elif smsin == "history": ### show which calls I've made
+		smsout = "You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])])
+	elif smsin == "daily": ### makes you eligible for weekday calls
+		smsout = "Excellent. You're now signed up for calls every day of the week."
+		idUpdateFields(caller['id'], active=WEEKDAY)
+	elif smsin == "weekly": ### limits calls to 1 per week
+		smsout = "Excellent. You're now signed up for calls one day a week."
+		idUpdateFields(caller['id'], active=MONDAY)
+	elif smsin == "next": ### gives you the next call to make
+		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+	elif smsin == "texts": ### switches you to texts instead of automatic calls
+		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+	elif smsin == "calls": ### switches you to calls instead of texts
+		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+	elif smsin == "list": ### shows all available campaigns for me right now
+		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+	elif smsin == "feedback": ### lets you comment on the system
+		smsout = "Please send feedback to us via email: improve@onecall.today"
+	else: # Send back list of possible commands
+		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY'"#, 'NEXT', 'TEXTS', 'CALLS', 'LIST', 'FEEDBACK'"
+	return smsout
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
 
@@ -490,8 +522,8 @@ def registerNewUser():
 	except:
 		raise DisplayError("Unrecognized Zipcode", 'landing.html')
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
-	insertR('caller',[callerid,ph,zc,calltime,ACTIVE],update=True)
-	text_number(ph, "Thanks for helping take action to progress our country! If you want to stop making calls, just reply 'pause'.")
+	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY],update=True)
+	text_number(ph, "Congratulations on taking action! If you ever want to stop making calls, just reply 'STOP'. Learn more at www.onecall.today")
 	return render_template('thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
@@ -576,7 +608,12 @@ def findcallers():
 	"""
 	now = datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
 	text = str(now)+'<br>'
-	for c in find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=ACTIVE):
+	callers = []
+	if datetime.utcnow().isoweekday() in range(1,6):
+		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=WEEKDAY)
+	if datetime.utcnow().isoweekday() in range(1,2):
+		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY)
+	for c in callers:
 		campaigns = listCampaigns(c)
 		for campaign in campaigns:
 			targets = listTargets(campaign,c) if campaigns else []
@@ -604,18 +641,14 @@ def receive_sms():
 	# logger.info('Got request: url: %r, post: %r, signature: %r',
 	#             url, dict(request.form.iteritems()), signature)
 	if not validator.validate(url, request.form, signature):
-		return str('failure')
+		app.logger.error('Invalid signature.')
+		return None
 	number = request.form['From']
 	message_body = request.form['Body'].strip().lower()
+	reply = smsdispatch(number, message_body)
 	resp = twilio.twiml.Response()
-	resp.message('Hello, {}, you said: {}'.format(number, message_body))
-	app.logger.error('Hello {}, you said: {}'.format(number, message_body))
-	if message_body == "stop":
-		### mark login as inactive
-		pass
-	if message_body == "start":
-		### mark login as active
-		pass
+	resp.message(reply)
+	logger.info(reply)
 	return str(resp)
 
 @app.route("/textseth", methods=['GET'])
