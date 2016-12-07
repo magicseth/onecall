@@ -8,7 +8,7 @@ from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
 from oct_constants import NULLNONE, ONEORNONE, ONLYONE, ACTIVE
 from oct_utils import sqlpair, flatten2d, checkNull
-from oct_local import dir_path
+from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
 from time import time
 import csv
@@ -447,8 +447,10 @@ def flushdb():
 	"""
 	This XXX DANGEROUS function deletes all database content
 	"""
-	os.system('cp -n onecall.sqlt ./backups/onecall_flushed_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt >> /var/home/log/os.log 2>&1') # copy to backup file
-	os.system('flask initdb >> /var/home/log/os.log 2>&1')
+	os.system('cp -n '+dir_path+'/onecall.sqlt '+dir_path+'/backups/onecall_flushed_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt >> '+log_path+'/os.log 2>&1') # copy to backup file
+	init_db()
+	print 'Flushed the database.'
+	populateTestDB()
 	return redirect('/dashboard')
 
 @app.route("/backup")
@@ -457,7 +459,7 @@ def backup():
 	"""
 	This backsup all database content
 	"""
-	os.system('cp -f onecall.sqlt ./backups/onecall_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt') # copy to backup file
+	os.system('cp -f '+dir_path+'/onecall.sqlt '+dir_path+'/backups/onecall_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt >> '+log_path+'/os.log 2>&1') # copy to backup file
 	return redirect('/dashboard')
 
 @app.route("/downloaddb")
