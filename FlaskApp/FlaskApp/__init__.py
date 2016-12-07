@@ -31,6 +31,7 @@ execfile(os.path.join(dir_path, 'SECRETS.py'))
 account_sid = os.environ['TWILIO_SID']
 auth_token = os.environ['TWILIO_AUTH']
 
+our_number = "+16179256394"
 
 ### CLASSES ###
 class DisplayError(Exception):
@@ -479,6 +480,7 @@ def registerNewUser():
 		raise DisplayError("Unrecognized Zipcode", 'landing.html')
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
 	insertR('caller',[callerid,ph,zc,calltime,ACTIVE],update=True)
+	text_number(ph, "Thanks for helping take action to progress our country! If you want to stop making calls, just reply 'pause'.")
 	return render_template('thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
@@ -603,9 +605,19 @@ def receive_sms():
 def text_seth():
 	"Send a text message to seth"
 	client = TwilioRestClient(account_sid, auth_token)
-	message = client.messages.create(to="+16177107496", from_="+16179256394",
+	message = client.messages.create(to="+16177107496", from_=our_number,
 									 body="Hello there!")
 	return "success"
+
+def text_caller(caller, message):
+	""" send an sms to caller """
+	text_number(caller['phone'], message)
+
+def text_number(number, message):
+	""" send an sms to caller """
+	client = TwilioRestClient(account_sid, auth_token)
+	message = client.messages.create(to=number, from_=our_number,
+									 body=message)
 
 @app.route("/campaignseth", methods=['GET'])
 def start_campaign():
@@ -618,7 +630,7 @@ def start_campaign():
 
 	client = TwilioRestClient(account_sid, auth_token)
 	call = client.calls.create(to="(617)7107496",  # Any phone number
-		from_="+16179256394 ", # Must be a valid Twilio number
+		from_=our_number, # Must be a valid Twilio number
 		if_machine="Hangup",
 		url="http://onecall.today/callscript?campaignid=" + str(campaignid) + "&callerid=" + str(callerid))
 	return(call.sid)
