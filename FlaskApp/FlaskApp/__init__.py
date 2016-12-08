@@ -716,7 +716,7 @@ def callscript():
 		resp.pause(length="4")
 		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
 		resp.dial(targets[0]['phones'][0])
-		insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phone'],targets[0]['name'],targets[0]['office'],])
+		insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
 		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")
 	return str(resp)
