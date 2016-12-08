@@ -125,10 +125,12 @@ def check_for_calls():
 	# if the current time is a multiple of 5...
 	if now.minute % 5 == 0:
 		thistime = now.strftime('%Y:%m:%d:%H:%M')
+		print thistime
 		# set it in redis to see if we have already kicked off calls
 		r = redis.Redis('localhost') # Is this limited to localhost?
 		havelock = r.setnx(thistime, 1)
 		if havelock == 1: # if we haven't started calls, then let's do it!
+			print 'starting findcallers'
 			findcallers(now)
 		# else: Would have duplicated an existing execution
 	# else: Not a multiple of 5, do not make calls
@@ -638,6 +640,7 @@ def findcallers(now=None):
 		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=WEEKDAY) # leading space in string is important!
 	if now.isoweekday() in range(1,2):
 		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY) # leading space in string is important!
+	print callers
 	for c in callers:
 		campaigns = listCampaigns(c)
 		for campaign in campaigns:
