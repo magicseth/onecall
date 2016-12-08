@@ -12,6 +12,7 @@ from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
 from time import time
+import random
 import csv
 import json
 import twilio.twiml
@@ -452,6 +453,18 @@ def start_campaign(campaign, caller):
 		if_machine="Hangup",
 		url="http://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
 
+def chooseCampaign(campaigns):
+	return weighted_choice([(c,int(c['callobjective'])) for c in campaigns])
+
+def weighted_choice(choices):
+   total = sum(w for c, w in choices)
+   r = random.uniform(0, total)
+   upto = 0
+   for c, w in choices:
+      if upto + w >= r:
+         return c
+      upto += w
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
 
@@ -643,12 +656,11 @@ def findcallers(now=None):
 	print callers
 	for c in callers:
 		campaigns = listCampaigns(c)
-		for campaign in campaigns:
-			targets = listTargets(campaign,c) if campaigns else []
-			if targets:
-				text = text + c['phone']+' should call '+targets[0]['name']+' of '+targets[0]['office']+' at '+' or '.join(targets[0]['phones'])+' about '+campaign['message']+'<br>'
-				start_campaign(campaign,c)
-				break
+		campsWITHtargets = [camp for camp in campaigns if listTargets(camp,c)] # ignore any campaigns that don't apply to the current caller
+		if campsWITHtargets:
+			camp = chooseCampaign(campsWITHtargets)
+			start_campaign(camp,c)
+			text = text + c['phone']+' should call about '+camp['message']+'<br>'
 	return text
 
 @app.route("/callpaul", methods=['GET', 'POST'])
