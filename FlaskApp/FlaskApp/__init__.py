@@ -30,7 +30,7 @@ app.config.update({
 
 execfile(os.path.join(dir_path, 'SECRETS.py'))
 
-use_twilio = False # Switch between live and test deployments
+use_twilio = True # Switch between live and test deployments
 account_sid = os.environ['TWILIO_SID'] if use_twilio else os.environ['TEST_SID']
 auth_token = os.environ['TWILIO_AUTH'] if use_twilio else os.environ['TEST_AUTH']
 our_number = "+16179256394" if use_twilio else "+15005550006"
@@ -94,19 +94,19 @@ def init_db():
 def populateTestDB():
 	insertR('login',[None, 'admin', encrypt('admin')])
 
-	insertR('caller',[None, formatphonenumber('16178432883'), '94107', '2016-11-26 13:00:00', 1])
-	insertR('caller',[None, formatphonenumber('16177179014'), '94107', '2016-11-26 13:00:00', 1])
-	insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
-	insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
-	insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'landing.html')
+	# insertR('caller',[None, formatphonenumber('16178432883'), '94107', '2016-11-26 13:00:00', 1])
+	# insertR('caller',[None, formatphonenumber('16177179014'), '94107', '2016-11-26 13:00:00', 1])
+	# insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
+	# insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
+	# insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'landing.html')
 
-	insertR('campaign',[None, 'Sample script: Hello, my name is John or Jane Smith and I\'m calling from ABC organization in PDQ state regarding XYZ issue. Gun control is super important', 0, int(time())+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
-	insertR('campaign',[None, 'Civil rights are super important', 0, int(time())+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
-	insertR('campaign',[None, 'Freedom of speech is super important', int(time())+604800, int(time())+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican', None, None])
-	insertR('campaign',[None, 'Calling Jona is super important', 0, int(time())+604800, 1000, 'Office of Important Matters', None, 'Jona Raphael', formatphonenumber('16178432883')])
+	# insertR('campaign',[None, 'Sample script: Hello, my name is John or Jane Smith and I\'m calling from ABC organization in PDQ state regarding XYZ issue. Gun control is super important', 0, int(time())+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
+	# insertR('campaign',[None, 'Civil rights are super important', 0, int(time())+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
+	# insertR('campaign',[None, 'Freedom of speech is super important', int(time())+604800, int(time())+604801, 1000, 'headOfState, deputyHeadOfGovernment', 'Republican', None, None])
+	# insertR('campaign',[None, 'Calling Jona is super important', 0, int(time())+604800, 1000, 'Office of Important Matters', None, 'Jona Raphael', formatphonenumber('16178432883')])
 
-	insertR('call',[None, datetime.now(), '1', '1', formatphonenumber('(202) 225-4965'), 'Nancy Pelosi', 'United States House of Representatives CA-12'])
-	insertR('call',[None, datetime.now(), '1', '2', formatphonenumber('(202) 224-3553'), 'Barbara Boxer', 'United States Senate'])
+	# insertR('call',[None, datetime.now(), '1', '1', formatphonenumber('(202) 225-4965'), 'Nancy Pelosi', 'United States House of Representatives CA-12'])
+	# insertR('call',[None, datetime.now(), '1', '2', formatphonenumber('(202) 224-3553'), 'Barbara Boxer', 'United States Senate'])
 
 
 @app.cli.command('initdb')
