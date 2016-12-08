@@ -133,7 +133,9 @@ def check_for_calls():
 		if havelock == 1: # if we haven't started calls, then let's do it!
 			print 'starting findcallers'
 			findcallers(now)
-		# else: Would have duplicated an existing execution
+		else: 
+			print "Would have duplicated an existing execution"
+
 	# else: Not a multiple of 5, do not make calls
 
 @app.teardown_appcontext
@@ -421,7 +423,8 @@ def smsdispatch(num, smsin):
 	elif smsin == "feedback": ### lets you comment on the system
 		smsout = "Please send feedback to us via email: improve@onecall.today"
 	elif smsin == "next": ### gives you the next call to make
-		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+		startNextCampaign(caller)
+		smsout = "Here it comes."
 	elif smsin == "texts": ### switches you to texts instead of automatic calls
 		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
 	elif smsin == "calls": ### switches you to calls instead of texts
@@ -638,6 +641,9 @@ def thanksredirect():
 
 @app.route("/findcallers")
 @must_login()
+def findcallers_via_web():
+	findcallers(None)
+
 def findcallers(now=None):
 	"""
 	This function is called by the cron to look for callers. 
@@ -655,13 +661,22 @@ def findcallers(now=None):
 		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY) # leading space in string is important!
 	print callers
 	for c in callers:
-		campaigns = listCampaigns(c)
-		campsWITHtargets = [camp for camp in campaigns if listTargets(camp,c)] # ignore any campaigns that don't apply to the current caller
-		if campsWITHtargets:
-			camp = chooseCampaign(campsWITHtargets)
-			start_campaign(camp,c)
-			text = text + c['phone']+' should call about '+camp['message']+'<br>'
+		campaign = getNextCampaign(c)
+		start_campaign(campaign,c)
+		text = text + c['phone']+' should call about '+campaign['message']+'<br>'
 	return text
+
+def startNextCampaign(caller):
+	campaign = getNextCampaign(caller)
+	if campaign:
+		start_campaign(campaign,caller)
+
+def getNextCampaign(caller):
+	campaigns = listCampaigns(caller)
+	campsWITHtargets = [camp for camp in campaigns if listTargets(camp,caller)] # ignore any campaigns that don't apply to the current caller
+	if campsWITHtargets:
+		return camp = chooseCampaign(campsWITHtargets)
+	return None
 
 @app.route("/callpaul", methods=['GET', 'POST'])
 @must_login()
@@ -688,7 +703,7 @@ def receive_sms():
 	reply = smsdispatch(number, message_body)
 	resp = twilio.twiml.Response()
 	resp.message(reply)
-	logger.info(reply)
+	app.logger.info(reply)
 	return str(resp)
 
 @app.route("/textseth", methods=['GET'])
@@ -706,7 +721,7 @@ def callscript():
 	camp = campaign(request.args.get('campaignid'))
 	clr = caller(request.args.get('callerid'))
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
-	logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id']+' starting with '+target[0]['name']))
+	app.logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id'])+' starting with '+targets[0]['name'])
 	resp = twilio.twiml.Response()
 	resp.say(camp['message'],voice='woman')
 	resp.pause(length="1")
@@ -715,7 +730,7 @@ def callscript():
 		resp.pause(length="4")
 		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
 		resp.dial(targets[0]['phones'][0])
-		insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phone'],targets[0]['name'],targets[0]['office'],])
+		insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
 		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")
 	return str(resp)
