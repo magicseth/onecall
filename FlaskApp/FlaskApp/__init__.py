@@ -422,7 +422,8 @@ def smsdispatch(num, smsin):
 	elif smsin == "feedback": ### lets you comment on the system
 		smsout = "Please send feedback to us via email: improve@onecall.today"
 	elif smsin == "next": ### gives you the next call to make
-		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+		startNextCampaign()
+		smsout = "Here it comes."
 	elif smsin == "texts": ### switches you to texts instead of automatic calls
 		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
 	elif smsin == "calls": ### switches you to calls instead of texts
@@ -644,14 +645,24 @@ def findcallers(now=None):
 		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY) # leading space in string is important!
 	print callers
 	for c in callers:
-		campaigns = listCampaigns(c)
-		for campaign in campaigns:
-			targets = listTargets(campaign,c) if campaigns else []
-			if targets:
-				text = text + c['phone']+' should call '+targets[0]['name']+' of '+targets[0]['office']+' at '+' or '.join(targets[0]['phones'])+' about '+campaign['message']+'<br>'
-				start_campaign(campaign,c)
-				break
+		campaign = getNextCampaign(c)
+		if campaign:
+			text = text + c['phone']+' should call about '+campaign['message']+'<br>'
+			start_campaign(campaign,c)
 	return text
+
+def startNextCampaign(caller):
+	campaign = getNextCampaign(caller)
+	if campaign:
+		start_campaign(campaign,caller)
+
+def getNextCampaign(caller):
+	campaigns = listCampaigns(c)
+	for campaign in campaigns:
+		targets = listTargets(campaign,c) if campaigns else []
+		if targets:
+			return campaign
+	return None
 
 @app.route("/callpaul", methods=['GET', 'POST'])
 @must_login()
