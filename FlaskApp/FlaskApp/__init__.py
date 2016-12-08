@@ -707,7 +707,7 @@ def callscript():
 	camp = campaign(request.args.get('campaignid'))
 	clr = caller(request.args.get('callerid'))
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
-	app.logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id']+' starting with '+target[0]['name']))
+	app.logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id'])+' starting with '+target[0]['name'])
 	resp = twilio.twiml.Response()
 	resp.say(camp['message'],voice='woman')
 	resp.pause(length="1")
