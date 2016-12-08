@@ -4,6 +4,7 @@ from functools import wraps
 from pyzipcode import ZipCodeDatabase
 from passlib.apps import custom_app_context as pwd_context
 from urllib2 import Request, urlopen, URLError
+from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
 from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY
@@ -29,10 +30,10 @@ app.config.update({
 
 execfile(os.path.join(dir_path, 'SECRETS.py'))
 
-account_sid = os.environ['TWILIO_SID']
-auth_token = os.environ['TWILIO_AUTH']
-
-our_number = "+16179256394"
+use_twilio = False # Switch between live and test deployments
+account_sid = os.environ['TWILIO_SID'] if use_twilio else os.environ['TEST_SID']
+auth_token = os.environ['TWILIO_AUTH'] if use_twilio else os.environ['TEST_AUTH']
+our_number = "+16179256394" if use_twilio else "+15005550006"
 
 ### CLASSES ###
 class DisplayError(Exception):
@@ -93,8 +94,8 @@ def init_db():
 def populateTestDB():
 	insertR('login',[None, 'admin', encrypt('admin')])
 
-	insertR('caller',[None, formatphonenumber('1000000000'), '94107', '2016-11-26 13:00:00', 1])
-	insertR('caller',[None, formatphonenumber('1000000001'), '10001', '2016-11-26 13:00:00', 1])
+	insertR('caller',[None, formatphonenumber('16178432883'), '94107', '2016-11-26 13:00:00', 1])
+	insertR('caller',[None, formatphonenumber('16177179014'), '94107', '2016-11-26 13:00:00', 1])
 	insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
 	insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
 	insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'landing.html')
@@ -120,22 +121,17 @@ def check_for_calls():
 	"""Checks to see if it is time to kick off calls (once every 5 minutes)."""
 	print 'Checking for calls'
 	# get the current time
-	now = datetime.now()
+	now = datetime.utcnow()
 	# if the current time is a multiple of 5...
 	if now.minute % 5 == 0:
 		thistime = now.strftime('%Y:%m:%d:%H:%M')
 		# set it in redis to see if we have already kicked off calls
-		r = redis.Redis('localhost')
+		r = redis.Redis('localhost') # Is this limited to localhost?
 		havelock = r.setnx(thistime, 1)
-		if havelock == 1:
-			print "We are going to make some calls at " + thistime
-		else:
-			print "we would have duplicated " + thistime
-		# if we haven't kicked off calls, then let's do it!
-	else:
-		print "Now is not the time to make calls"
-	
-
+		if havelock == 1: # if we haven't started calls, then let's do it!
+			findcallers(now)
+		# else: Would have duplicated an existing execution
+	# else: Not a multiple of 5, do not make calls
 
 @app.teardown_appcontext
 def close_db(error):
@@ -431,6 +427,29 @@ def smsdispatch(num, smsin):
 		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY', 'LIST', 'FEEDBACK'"#, 'TEXTS', 'CALLS', 'NEXT'"
 	return smsout
 
+def text_caller(caller, message):
+	""" send an sms to caller """
+	text_number(caller['phone'], message)
+
+def text_number(number, message):
+	""" send an sms to caller """
+	client = TwilioRestClient(account_sid, auth_token)
+	message = client.messages.create(
+		to=number, 
+		from_=our_number,
+		body=message)
+
+def start_campaign(campaign, caller):
+	# XXXSETH how do we protect our twilio service from being accessed by arbitrary calls to our exposed functions?
+	# XXXSETH this is currently calling me and saying "we are sorry an application error has occured, goodbye"
+	# XXXSETH we need to be careful--this can accidentally be run on dev platform during testing or debug and it will make the actual calls... When live, it will be important to make it only execute calls from the actual live server.
+	client = TwilioRestClient(account_sid, auth_token)
+	call = client.calls.create(
+		to=caller['phone'],  # Any phone number
+		from_=our_number, # Must be a valid Twilio number
+		if_machine="Hangup",
+		url="http://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
 
@@ -522,8 +541,14 @@ def registerNewUser():
 	except:
 		raise DisplayError("Unrecognized Zipcode", 'landing.html')
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
+	try:
+		text_number(ph, "Congratulations on taking action! If you ever want to stop making calls, just reply 'STOP'. Learn more at www.onecall.today")
+	except TwilioRestException as e:
+		if e.code == 21211:
+			raise DisplayError("Invalid phone number.", 'landing.html')
+		else:
+			raise e
 	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY],update=True)
-	text_number(ph, "Congratulations on taking action! If you ever want to stop making calls, just reply 'STOP'. Learn more at www.onecall.today")
 	return render_template('thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
@@ -598,29 +623,29 @@ def thanksredirect():
 
 @app.route("/findcallers")
 @must_login()
-def findcallers():
+def findcallers(now=None):
 	"""
 	This function is called by the cron to look for callers. 
-	It takes no arguments, but searches the entire caller database for anyone who wants to be called at the current timestamp.
+	It takes a timestamp as an argument, and searches the entire caller database for anyone who wants to be called at the current timestamp.
 	It then finds all the campaigns a caller hasn't yet called
 	It then finds all the targets for those campaigns
 	Finally, it prints the results to screen (XXX SHOULD execute call instead)
 	"""
-	now = datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
+	now = now or datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
 	text = str(now)+'<br>'
 	callers = []
-	if datetime.utcnow().isoweekday() in range(1,6):
-		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=WEEKDAY)
-	if datetime.utcnow().isoweekday() in range(1,2):
-		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY)
+	if now.isoweekday() in range(1,6):
+		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=WEEKDAY) # leading space in string is important!
+	if now.isoweekday() in range(1,2):
+		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY) # leading space in string is important!
 	for c in callers:
 		campaigns = listCampaigns(c)
 		for campaign in campaigns:
 			targets = listTargets(campaign,c) if campaigns else []
-			for target in targets: 
-				text = text+ c['phone']+' should call '+target['name']+' of '+target['office']+' at '+' or '.join(target['phones'])+' about '+campaign['message']+'<br>'
-	text = text+"NO MORE CALLS TO BE MADE"+'<br>'
-	print text.replace("<br>", "\n")
+			if targets:
+				text = text + c['phone']+' should call '+targets[0]['name']+' of '+targets[0]['office']+' at '+' or '.join(targets[0]['phones'])+' about '+campaign['message']+'<br>'
+				start_campaign(campaign,c)
+				break
 	return text
 
 @app.route("/callpaul", methods=['GET', 'POST'])
@@ -660,55 +685,25 @@ def text_seth():
 									 body="Hello there!")
 	return "success"
 
-def text_caller(caller, message):
-	""" send an sms to caller """
-	text_number(caller['phone'], message)
-
-def text_number(number, message):
-	""" send an sms to caller """
-	client = TwilioRestClient(account_sid, auth_token)
-	message = client.messages.create(to=number, from_=our_number,
-									 body=message)
-
-@app.route("/campaignseth", methods=['GET'])
-def start_campaign():
-	# XXXSETH how do we protect our twilio service from being accessed by arbitrary calls to our exposed functions?
-	# XXXSETH this is currently calling me and saying "we are sorry an application error has occured, goodbye"
-	# XXXSETH we need to be careful--this can accidentally be run on dev platform during testing or debug and it will make the actual calls... When live, it will be important to make it only execute calls from the actual live server.
-	campaignid = 1
-	callerid = 1
-	# caller = caller(callerid)
-
-	client = TwilioRestClient(account_sid, auth_token)
-	call = client.calls.create(to="(617)7107496",  # Any phone number
-		from_=our_number, # Must be a valid Twilio number
-		if_machine="Hangup",
-		url="http://onecall.today/callscript?campaignid=" + str(campaignid) + "&callerid=" + str(callerid))
-	return(call.sid)
-
 @app.route("/callscript", methods=['GET'])
 def callscript():
 	# XXXSETH this function needs to only respond if the request is coming from TWILIO
 	camp = campaign(request.args.get('campaignid'))
 	clr = caller(request.args.get('callerid'))
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
+	logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id']+' starting with '+target[0]['name']))
 	resp = twilio.twiml.Response()
 	resp.say(camp['message'],voice='woman')
 	resp.pause(length="1")
 	if targets:
-		resp.say("If you'd like to be connected to " + targets[0]['name'] +" remain on the line")
+		resp.say("If you'd like to be connected to " + targets[0]['name'] +", please remain on the line")
 		resp.pause(length="4")
-		# Dial (310) 555-1212 - connect that number to the incoming caller.
-		resp.say("Connecting you to " + targets[0]['name'] + ' of ' + targets[0]['office'])
+		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
 		resp.dial(targets[0]['phones'][0])
 		insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phone'],targets[0]['name'],targets[0]['office'],])
-	else:
-		# XXX The campaign should not get this far, if the caller has no targets for it.
-		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")		
-
+	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
+		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")
 	return str(resp)
-	# return ("campaign " + str(camp) )
-
 
 if __name__ == "__main__":
 	app.run(debug=True) # Set debug=True so that saving this file automatically restarts the flask app
