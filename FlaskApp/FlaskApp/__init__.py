@@ -657,9 +657,9 @@ def startNextCampaign(caller):
 		start_campaign(campaign,caller)
 
 def getNextCampaign(caller):
-	campaigns = listCampaigns(c)
+	campaigns = listCampaigns(caller)
 	for campaign in campaigns:
-		targets = listTargets(campaign,c) if campaigns else []
+		targets = listTargets(campaign,caller) if campaigns else []
 		if targets:
 			return campaign
 	return None
