@@ -628,6 +628,9 @@ def thanksredirect():
 
 @app.route("/findcallers")
 @must_login()
+def findcallers_via_web:
+	findcallers(None)
+
 def findcallers(now=None):
 	"""
 	This function is called by the cron to look for callers. 
