@@ -422,7 +422,7 @@ def smsdispatch(num, smsin):
 	elif smsin == "feedback": ### lets you comment on the system
 		smsout = "Please send feedback to us via email: improve@onecall.today"
 	elif smsin == "next": ### gives you the next call to make
-		startNextCampaign()
+		startNextCampaign(caller)
 		smsout = "Here it comes."
 	elif smsin == "texts": ### switches you to texts instead of automatic calls
 		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
