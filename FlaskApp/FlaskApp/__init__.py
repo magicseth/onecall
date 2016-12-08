@@ -132,7 +132,9 @@ def check_for_calls():
 		if havelock == 1: # if we haven't started calls, then let's do it!
 			print 'starting findcallers'
 			findcallers(now)
-		# else: Would have duplicated an existing execution
+		else: 
+			print "Would have duplicated an existing execution"
+
 	# else: Not a multiple of 5, do not make calls
 
 @app.teardown_appcontext
