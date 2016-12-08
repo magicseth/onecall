@@ -675,7 +675,7 @@ def getNextCampaign(caller):
 	campaigns = listCampaigns(caller)
 	campsWITHtargets = [camp for camp in campaigns if listTargets(camp,caller)] # ignore any campaigns that don't apply to the current caller
 	if campsWITHtargets:
-		return camp = chooseCampaign(campsWITHtargets)
+		return chooseCampaign(campsWITHtargets)
 	return None
 
 @app.route("/callpaul", methods=['GET', 'POST'])
