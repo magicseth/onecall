@@ -20,3 +20,6 @@ CALLBUSY = 'busy'
 CALLNOANSWER = 'no-answer'
 CALLFAILED = 'failed'
 CALLCANCELED = 'canceled'
+
+PREFCALL = 0
+PREFSMS = 1

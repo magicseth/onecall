@@ -9,7 +9,8 @@ CREATE TABLE caller (
   phone text UNIQUE NOT NULL,
   zipcode text,
   calltime text,
-  active integer
+  active integer,
+  preference integer
 ) ;
 
 CREATE TABLE campaign (

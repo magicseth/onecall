@@ -7,7 +7,8 @@ from urllib2 import Request, urlopen, URLError
 from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
-from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY, CALLCOMPLETED, CALLANSWERED
+from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY, \
+		CALLCOMPLETED, CALLANSWERED, PREFCALL, PREFSMS
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
@@ -154,7 +155,7 @@ def insertR(table, r, update=False):
 	update = True If we want to write over existing entries rather than create a new one. Note that there is a uniqueness constraint on the caller.phone.
 	"""
 	insertstr = {
-		"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?)",
+		"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?,?)",
 		"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?)",
 		"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?,?,?,?)",
 		"login": "INSERT INTO login VALUES (NULL,?,?)",
@@ -420,17 +421,19 @@ def smsdispatch(num, smsin):
 		smsout = "Here are your upcoming campaigns: "+', '.join([str(c['id']) for c in listCampaigns(caller)]) # XXX Should add nickname column? message is too long
 	elif smsin == "history": ### show which calls I've made
 		smsout = "You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])])
-	elif smsin == "feedback": ### lets you comment on the system
-		smsout = "Please send feedback to us via email: improve@onecall.today"
 	elif smsin == "next": ### gives you the next call to make
 		startNextCampaign(caller)
-		smsout = "Here it comes."
+		smsout = "Bravo. Dialing next campaign now!"
 	elif smsin == "texts": ### switches you to texts instead of automatic calls
-		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+		smsout = "Good choice. You're now switched over to receive SMS instead of calls."
+		idUpdateFields('caller', caller['id'], preference=PREFSMS)
 	elif smsin == "calls": ### switches you to calls instead of texts
-		smsout = "Oops! This feature hasn't been implemented yet... We'll let you know when it's ready."
+		smsout = "Welcom back! You're now switched over to receive calls instead of SMS."
+		idUpdateFields('caller', caller['id'], preference=PREFCALL)
+	elif smsin == "feedback": ### lets you comment on the system
+		smsout = "Please send feedback to us via email: improve@onecall.today"
 	else: # Send back list of possible commands
-		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY', 'LIST', 'FEEDBACK'"#, 'TEXTS', 'CALLS', 'NEXT'"
+		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY', 'LIST', 'NEXT', 'TEXTS', 'CALLS', 'FEEDBACK'"
 	return smsout
 
 def text_caller(caller, message):
@@ -567,7 +570,7 @@ def registerNewUser():
 			raise DisplayError("Invalid phone number.", 'landing.html')
 		else:
 			raise e
-	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY],update=True)
+	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY,PREFCALL],update=True)
 	return render_template('thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
@@ -662,15 +665,16 @@ def findcallers(now=None):
 		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY) # leading space in string is important!
 	print callers
 	for c in callers:
-		campaign = getNextCampaign(c)
-		start_campaign(campaign,c)
-		text = text + c['phone']+' should call about '+campaign['message']+'<br>'
+		campaign = startNextCampaign(c)
+		if campaign:
+			text = text + c['phone']+' should call about '+campaign['message']+'<br>'
 	return text
 
 def startNextCampaign(caller):
 	campaign = getNextCampaign(caller)
 	if campaign:
 		start_campaign(campaign,caller)
+	return campaign
 
 def getNextCampaign(caller):
 	campaigns = listCampaigns(caller)
