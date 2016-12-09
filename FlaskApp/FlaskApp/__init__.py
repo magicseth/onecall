@@ -7,7 +7,7 @@ from urllib2 import Request, urlopen, URLError
 from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
-from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY, CALLSTART
+from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY, CALLCOMPLETED, CALLANSWERED
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
