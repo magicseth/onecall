@@ -120,7 +120,7 @@ createstr = {
 		"passhash integer NOT NULL);",
 }
 recopystr = {
-	"caller": "INSERT INTO %s SELECT id, phone, zipcode, calltime, active, preference, NULL FROM %s",
+	"caller": "INSERT INTO %s SELECT id, phone, zipcode, calltime, active, preference, topics FROM %s",
 	"campaign": "INSERT INTO %s SELECT id, message, startdate, enddate, callobjective, offices, targetparties, targetname, targetphone FROM %s",
 	"call": "INSERT INTO %s SELECT id, tstamp, callerid, campaignid, targetphone, targetname, targetoffice, status, duration, recording FROM %s",
 	"login": "INSERT INTO %s SELECT id, username, passhash FROM %s"
@@ -136,7 +136,7 @@ insertstr = {
 # 1) Add the column name and type inside createstr 
 # 2) Add the string ", NULL" inside recopystr for each new column
 # 3) Add the string ",?" inside insertstr for each new column
-# 4) Look for all insertR() calls for your table type, and edit to have new parameter
+# 4) Look for all insertR() calls for the relevant table type, and edit to pass new parameter
 # 5) Run recopyDB() on Server
 # 6) Change each "NULL" from step #2 to the actual column name
 
