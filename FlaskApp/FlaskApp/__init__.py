@@ -732,7 +732,7 @@ def callscript():
 		resp.sms(camp['message'])
 		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
 		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
-		resp.dial(hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)).number(targets[0]['phones'][0])
+		resp.dial(record="record-from-answer-dual", hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)).number(targets[0]['phones'][0])
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
 		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")
 	return str(resp)
@@ -743,6 +743,7 @@ def logCallEnd():
 	#call_id = insertR('call',[call_id,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
 	print request.args.get('DialCallStatus')
 	print request.args.get('DialCallDuration')
+	print request.args.get('RecordingUrl')
 	### XXXJONA update call log with success paramete
 	resp = twilio.twiml.Response()
 	resp.say('Good bye ' + call_id,voice='woman')
