@@ -66,6 +66,21 @@ def must_login():
 		return wrapped
 	return wrapper
 
+def from_twilio():
+	def wrapper(f):
+		@wraps(f)
+		def wrapped(*args, **kwargs):
+			# https://www.twilio.com/docs/api/security
+			validator = RequestValidator(auth_token)
+			signature = request.headers.get('X-Twilio-Signature', '')
+			url = get_original_request_url(request)
+			if not validator.validate(url, request.form, signature):
+				app.logger.error('Invalid signature.')
+				return None
+			return f(*args, **kwargs)
+		return wrapped
+	return wrapper
+
 ### DB Maintenance ###
 
 def connect_db():
@@ -694,15 +709,8 @@ def hello_monkey():
 	return str(resp)
 
 @app.route("/incomingsms", methods=['POST', 'GET'])
+@from_twilio()
 def receive_sms():
-	validator = RequestValidator(auth_token)
-	signature = request.headers.get('X-Twilio-Signature', '')
-	url = get_original_request_url(request)
-	# logger.info('Got request: url: %r, post: %r, signature: %r',
-	#             url, dict(request.form.iteritems()), signature)
-	if not validator.validate(url, request.form, signature):
-		app.logger.error('Invalid signature.')
-		return None
 	number = request.form['From']
 	message_body = request.form['Body'].strip().lower()
 	reply = smsdispatch(number, message_body)
@@ -721,8 +729,8 @@ def text_seth():
 	return "success"
 
 @app.route("/callscript", methods=['GET'])
+@from_twilio()
 def callscript():
-	# XXXSETH this function needs to only respond if the request is coming from TWILIO
 	camp = campaign(request.args.get('campaignid'))
 	clr = caller(request.args.get('callerid'))
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
@@ -742,6 +750,7 @@ def callscript():
 	return str(resp)
 
 @app.route("/logCallEnd", methods=['GET', 'POST'])
+@from_twilio()
 def logCallEnd():
 	call_id = request.args.get('call_id')
 	idUpdateFields('call', call_id, status=request.args.get('DialCallStatus'), duration=request.args.get('DialCallDuration'), recording=request.args.get('RecordingUrl'))
