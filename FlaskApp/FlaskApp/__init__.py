@@ -473,7 +473,7 @@ def start_campaign(campaign, caller):
 		from_=our_number, # Must be a valid Twilio number
 		if_machine="Hangup",
 		method="GET",
-		url="https://a3fc160d.ngrok.io/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
+		url="https://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
 
 def chooseCampaign(campaigns):
 	return weighted_choice([(c,int(c['callobjective'])) for c in campaigns])
