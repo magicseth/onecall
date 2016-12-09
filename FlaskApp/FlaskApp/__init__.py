@@ -454,7 +454,8 @@ def start_campaign(campaign, caller):
 		to=caller['phone'],  # Any phone number
 		from_=our_number, # Must be a valid Twilio number
 		if_machine="Hangup",
-		url="http://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
+		method="GET",
+		url="https://a3fc160d.ngrok.io/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
 
 def chooseCampaign(campaigns):
 	return weighted_choice([(c,int(c['callobjective'])) for c in campaigns])
@@ -729,10 +730,21 @@ def callscript():
 		resp.say("If you'd like to be connected to " + targets[0]['name'] +", please remain on the line")
 		resp.pause(length="4")
 		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
-		resp.dial(targets[0]['phones'][0])
-		insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
+		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
+		resp.dial(hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)).number(targets[0]['phones'][0])
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
 		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")
+	return str(resp)
+
+@app.route("/logCallEnd", methods=['GET', 'POST'])
+def logCallEnd():
+	call_id = request.args.get('call_id')
+	#call_id = insertR('call',[call_id,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
+	print request.args.get('DialCallStatus')
+	print request.args.get('DialCallDuration')
+	### XXXJONA update call log with success paramete
+	resp = twilio.twiml.Response()
+	resp.say('Good bye ' + call_id,voice='woman')
 	return str(resp)
 
 if __name__ == "__main__":
