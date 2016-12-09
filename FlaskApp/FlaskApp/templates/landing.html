@@ -7,14 +7,18 @@
       <!--<script src="lumeter.js"></script>-->
   </head>
   <body id="body">
+    <div id="image_container">
+      <!-- <img src="../static/images/protest1.jpeg"> -->
+    </div>
     <div class='error_container center'>
       {% if error %}
         <p><strong>Error:</strong> {{ error }}
       {% endif %}
     </div>
-    <div class="center main">
-      <h2>Be heard:</h2>
-      <h1>One call today</h1>
+    <div class="center heropic">
+      <h1>YOUR VOICE MATTERS.</h1>
+    </div>
+    <div class="colorblock">      
       <form action="registerNewUser" method="Post">
         <table class="center">
           <tr><td><input class="inp" type="number" name="phonenumber" placeholder="Your Phone Number" required min="1000000000" max="19999999999"></td></tr>
@@ -33,16 +37,16 @@
         </table>
       </form>
     </div>
-    <div class="colorblock red">
-      <p class="center" style="width:60%;"><strong style="font-size: 30;">Your voice is important.</strong><br> OneCall makes it easy for you to contact<br>your representatives<br>about the issues that matter to you most.</p>
+    <div class="colorblock red skewed">
+      <p class="center" style="width:60%;"><strong style="font-size: 30;">Be heard.</strong><br> We make it easy for you to<br>contact your representatives<br>about the issues that matter to you most.</p>
     </div>    
-    <div class="colorblock white">
-      <p class="center" style="width:60%;">If you're too busy to fly to DC, you can still play an important role in politics. OneCall is making it easier and more effective to get in touch with your representatives, who are weighing in on the issues you care deeply about. These cover a wide range of topics like climate change, race relations, LGBTQ rights, social safety nets, immigration, gun control, campaign finance reform, and so many others.</p>
+    <div class="colorblock white skewed">
+      <p class="center" style="width:60%;">Climate Change, Race Relations, LGBTQ Rights,<br> Social Safety Nets, Immigration,<br>Gun Control, Campaign Finance Reform...</p>
     </div>    
-    <div class="colorblock blue">
-      <p class="center" style="width:60%;">OneCall has taken all the pain out of contacting your representative, by automatically connecting you to their office during your morning commute! Every day, you'll receive one call (at the time you've specified) that tells you about an important issue that needs your support. If you agree with the idea, then we'll automatically connect you to your representative so you can briefly express your views. It's as easy as picking up the phone.</p>
+    <div class="colorblock blue skewed">
+      <p class="center" style="width:60%;">We've taken all the pain out of contacting your representative, by automatically connecting you to them during your morning commute!<br><br>Every day, you'll receive one call regarding an important issue that needs your support. If you agree with the idea, then you'll instantly be connected to the most relevant representative.</p>
     </div>    
-    <div class="colorblock white">
+    <div class="colorblock white skewed">
       <p class="center" style="width:60%;"> <strong>Democracy, outside the voting booth.</strong></p>
     </div>    
     <div style="bottom: 10px; right: 10px;"><a href="../login">© 2016 Leahpar Brothers</a>
