@@ -13,10 +13,10 @@
       {% endif %}
     </div>
     <div class="center main">
-      <input class="btn debug" type="button" onclick="if (confirm('~~~ WARNING ~~~ Clicking OK will blow away the database.')){location.href='../flush';}" value="Flush DB">
-      <input class="btn debug" type="button" onclick="location.href='../backup';" value="Backup DB">
+<!--       <input class="btn debug" type="button" onclick="if (confirm('~~~ WARNING ~~~ Clicking OK will blow away the database.')){location.href='../flush';}" value="Flush DB"> -->
+      <input class="btn debug" type="button" onclick="location.href='../backupAndCopy';" value="Backup and Recopy DB">
       <input class="btn debug" type="button" onclick="window.open('../dump');" value="Dump DB">
-      <input class="btn debug" type="button" onclick="location.href='../downloaddb';" value="Download DB">
+<!--       <input class="btn debug" type="button" onclick="location.href='../downloaddb';" value="Download DB"> -->
       <input class="btn debug" type="button" onclick="window.open('../findcallers');" value="Find Callers">
       <input class="btn debug" type="button" onclick="location.href='../logout';" value="LOG OUT">
       <form action="registerNewCampaign" method="Post" class="red">

@@ -3,6 +3,10 @@ drop table if exists call;
 drop table if exists campaign;
 drop table if exists caller;
 drop table if exists login;
+drop table if exists call_old; 
+drop table if exists campaign_old;
+drop table if exists caller_old;
+drop table if exists login_old;
 
 CREATE TABLE caller (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
