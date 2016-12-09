@@ -729,6 +729,7 @@ def callscript():
 	if targets:
 		resp.say("If you'd like to be connected to " + targets[0]['name'] +", please remain on the line")
 		resp.pause(length="4")
+		resp.sms(camp['message'])
 		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
 		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
 		resp.dial(hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)).number(targets[0]['phones'][0])
