@@ -12,4 +12,11 @@ INACTIVE = 0
 WEEKDAY = 1
 MONDAY = 2
 
-CALLSTART = 1
+# From https://www.twilio.com/docs/api/twiml/dial
+CALLSETUP = 'setup' # INTERNAL
+CALLCOMPLETED = 'completed'
+CALLANSWERED = 'answered'
+CALLBUSY = 'busy'
+CALLNOANSWER = 'no-answer'
+CALLFAILED = 'failed'
+CALLCANCELED = 'canceled'
