@@ -160,10 +160,10 @@ def get_db():
 	return g.sqlite_db
 
 def init_db():
-	db = get_db()
-	with app.open_resource('db.sql', mode='r') as f:
-		db.cursor().executescript(f.read())
-	db.commit()
+	for table in droporder:
+		sqlSend("DROP TABLE IF EXISTS %s" % table)		
+		sqlSend("DROP TABLE IF EXISTS %s" % table + "_old")		
+		sqlSend(createstr[table])
 
 def populateTestDB():
 	insertR('login',[None, 'admin', encrypt('admin')])
