@@ -7,7 +7,7 @@ from urllib2 import Request, urlopen, URLError
 from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
-from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY
+from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY, CALLSTART
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
@@ -156,7 +156,7 @@ def insertR(table, r, update=False):
 	insertstr = {
 		"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?)",
 		"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?)",
-		"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?)",
+		"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?,?,?,?)",
 		"login": "INSERT INTO login VALUES (NULL,?,?)",
 	}
 	if update and table=='caller': # Enforce uniqueness on caller phone numbers
@@ -731,7 +731,7 @@ def callscript():
 		resp.pause(length="4")
 		resp.sms(camp['message'])
 		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
-		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
+		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'], CALLSTART, None, None])
 		resp.dial(record="record-from-answer-dual", hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)).number(targets[0]['phones'][0])
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
 		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")
@@ -740,13 +740,9 @@ def callscript():
 @app.route("/logCallEnd", methods=['GET', 'POST'])
 def logCallEnd():
 	call_id = request.args.get('call_id')
-	#call_id = insertR('call',[call_id,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'],])
-	print request.args.get('DialCallStatus')
-	print request.args.get('DialCallDuration')
-	print request.args.get('RecordingUrl')
-	### XXXJONA update call log with success paramete
+	idUpdateFields('call', call_id, status=request.args.get('DialCallStatus'), duration=request.args.get('DialCallDuration'), recording=request.args.get('RecordingUrl'))
 	resp = twilio.twiml.Response()
-	resp.say('Good bye ' + call_id,voice='woman')
+	resp.say('Nice work! We\'ll be in again touch soon.',voice='woman')
 	return str(resp)
 
 if __name__ == "__main__":

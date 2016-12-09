@@ -26,12 +26,15 @@ CREATE TABLE campaign (
 
 CREATE TABLE call (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-  tstamp text NOT NULL,
+  tstamp timestamp NOT NULL,
   callerid integer NOT NULL REFERENCES caller(id),
   campaignid integer NOT NULL REFERENCES campaign(id),
   targetphone text,
   targetname text,
-  targetoffice text
+  targetoffice text,
+  status text,
+  duration text,
+  recording text
 ) ;
 
 CREATE TABLE login (

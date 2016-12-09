@@ -11,3 +11,5 @@ ONEORNONE = 4 # Return a single value or None, Err if >1
 INACTIVE = 0
 WEEKDAY = 1
 MONDAY = 2
+
+CALLSTART = 1
