@@ -406,18 +406,18 @@ def smsdispatch(num, smsin):
 		smsout = "Oops! We can't find this phone in our records. Please go to www.onecall.today to sign up!"
 	elif smsin == "stop": ### mark login as inactive
 		smsout = "Sorry to see you go! You can change your zipcode or call time by using the signup form at www.onecall.today, or start making calls again by replying to this SMS with 'START'"
-		idUpdateFields(caller['id'], active=INACTIVE)
+		idUpdateFields('caller', caller['id'], active=INACTIVE)
 	elif smsin == "start": ### mark login as active
 		smsout = "Welcome back! You can change your zipcode or call time by using the signup form at www.onecall.today, or stop making calls all together by replying to this SMS with 'STOP'"
-		idUpdateFields(caller['id'], active=WEEKDAY)
+		idUpdateFields('caller', caller['id'], active=WEEKDAY)
 	elif smsin == "daily": ### makes you eligible for weekday calls
 		smsout = "Excellent. You're now signed up for calls every day of the week."
-		idUpdateFields(caller['id'], active=WEEKDAY)
+		idUpdateFields('caller', caller['id'], active=WEEKDAY)
 	elif smsin == "weekly": ### limits calls to 1 per week
 		smsout = "Excellent. You're now signed up for calls one day a week."
-		idUpdateFields(caller['id'], active=MONDAY)
+		idUpdateFields('caller', caller['id'], active=MONDAY)
 	elif smsin == "list": ### shows all available campaigns for me right now
-		smsout = "Here are your upcoming campaigns: "+', '.join([c['id'] for c in listCampaigns(caller)]) # XXX Should add nickname column? message is too long
+		smsout = "Here are your upcoming campaigns: "+', '.join([str(c['id']) for c in listCampaigns(caller)]) # XXX Should add nickname column? message is too long
 	elif smsin == "history": ### show which calls I've made
 		smsout = "You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])])
 	elif smsin == "feedback": ### lets you comment on the system
