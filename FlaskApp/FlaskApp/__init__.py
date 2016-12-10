@@ -417,39 +417,49 @@ def get_original_request_url(request):
     return url
 
 def smsdispatch(num, smsin):
+	resp = twilio.twiml.Response()
 	caller = find('caller',ONEORNONE,phone=num)
 	if caller is None:
-		smsout = "Oops! We can't find this phone in our records. Please go to www.onecall.today to sign up!"
-	elif smsin == "stop": ### mark login as inactive
-		smsout = "Sorry to see you go! You can change your zipcode or call time by using the signup form at www.onecall.today, or start making calls again by replying to this SMS with 'START'"
+		resp.message("Oops! We can't find this phone in our records. Please go to https://onecall.today to sign up!")
+	elif smsin in["stop", "never"]: ### mark login as inactive
+		resp.message("Sorry to see you go! You can change your zipcode or call time by using the signup form at https://onecall.today, or start making calls again by replying to this SMS with 'START'")
 		idUpdateFields('caller', caller['id'], active=INACTIVE)
 	elif smsin == "start": ### mark login as active
-		smsout = "Welcome back! You can change your zipcode or call time by using the signup form at www.onecall.today, or stop making calls all together by replying to this SMS with 'STOP'"
+		resp.message("Welcome back! You can change your zipcode or call time by using the signup form at https://onecall.today, or stop making calls all together by replying to this SMS with 'STOP'")
 		idUpdateFields('caller', caller['id'], active=WEEKDAY)
 	elif smsin == "daily": ### makes you eligible for weekday calls
-		smsout = "Excellent. You're now signed up for calls every day of the week."
+		resp.message("Excellent. You're now signed up for calls every day of the week.")
 		idUpdateFields('caller', caller['id'], active=WEEKDAY)
 	elif smsin == "weekly": ### limits calls to 1 per week
-		smsout = "Excellent. You're now signed up for calls one day a week."
+		resp.message("Excellent. You're now signed up for calls one day a week.")
 		idUpdateFields('caller', caller['id'], active=MONDAY)
 	elif smsin == "list": ### shows all available campaigns for me right now
-		smsout = "Here are your upcoming campaigns: "+', '.join([str(c['id']) for c in listCampaigns(caller)]) # XXX Should add nickname column? message is too long
+		resp.message("Here are your upcoming campaigns: "+', '.join([str(c['id']) for c in listCampaigns(caller)])) # XXX Should add nickname column? message is too long
 	elif smsin == "history": ### show which calls I've made
-		smsout = "You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])])
-	elif smsin == "next": ### gives you the next call to make
-		startNextCampaign(caller)
-		smsout = "Bravo. Dialing next campaign now!"
+		resp.message("You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])]))
+	elif smsin == "call": ### gives you the next call to make
+		campaign = startNextCampaign(caller)
+		if campaign:
+			resp.message("Alright, we're calling you now!")
+		else:
+			resp.message("It seems we don't have any calls for you right now! Thanks for your enthusiasm.")
 	elif smsin == "texts": ### switches you to texts instead of automatic calls
-		smsout = "Good choice. You're now switched over to receive SMS instead of calls."
+		resp.message("Good choice. You're now switched over to receive SMS instead of calls.")
 		idUpdateFields('caller', caller['id'], preference=PREFSMS)
 	elif smsin == "calls": ### switches you to calls instead of texts
-		smsout = "Welcom back! You're now switched over to receive calls instead of SMS."
+		resp.message("Welcom back! You're now switched over to receive calls instead of SMS.")
 		idUpdateFields('caller', caller['id'], preference=PREFCALL)
 	elif smsin == "feedback": ### lets you comment on the system
-		smsout = "Please send feedback to us via email: improve@onecall.today"
+		resp.message("Please send feedback to us via email: improve@onecall.today")
 	else: # Send back list of possible commands
-		smsout = "Oops! We don't recognize your request. Please reply with one of the following options: 'STOP', 'START', 'HISTORY', 'DAILY', 'WEEKLY', 'LIST', 'NEXT', 'TEXTS', 'CALLS', 'FEEDBACK'"
-	return smsout
+		resp.message("Here are the commands I understand:")
+		resp.pause(length=3)
+		resp.message("When may we call?\n\nDAILY one call / week day\nWEEKLY one call a week\nNEVER no more calls")
+		resp.pause(length=3)
+		resp.message("How should we reach you?\n\nTEXTS get briefings via texts\nCALLS get briefings via calls\n\nCALL Make a call now")
+		resp.pause(length=3)
+		resp.message("Text me one of the all-caps words to interact change your preferences.")
+	return resp
 
 def text_caller(caller, message):
 	""" send an sms to caller """
@@ -579,7 +589,9 @@ def registerNewUser():
 		raise DisplayError("Unrecognized Zipcode", 'landing.html')
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
 	try:
-		text_number(ph, "Congratulations on taking action! If you ever want to stop making calls, just reply 'STOP'. Learn more at www.onecall.today")
+		text_number(ph, "Welcome to OneCall. We make phone activism simple. Soon we'll give you a call with info on how to help save the world.")
+		text_number(ph, "We'll give you some talking points. If you want to make the call we'll connect the phone for you. 3 minutes. Huge Impact.")
+		text_number(ph, "To make your first call now, text CALL. If you didn't mean to sign up, text NEVER. For more information text HELP.")
 	except TwilioRestException as e:
 		if e.code == 21211:
 			raise DisplayError("Invalid phone number.", 'landing.html')
@@ -713,10 +725,8 @@ def hello_monkey():
 def receive_sms():
 	number = request.form['From']
 	message_body = request.form['Body'].strip().lower()
-	reply = smsdispatch(number, message_body)
-	resp = twilio.twiml.Response()
-	resp.message(reply)
-	app.logger.info(reply)
+	resp = smsdispatch(number, message_body)
+	app.logger.info(resp)
 	return str(resp)
 
 @app.route("/textseth", methods=['GET'])
