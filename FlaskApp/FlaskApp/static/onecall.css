@@ -126,7 +126,7 @@ body {
 
 body::after {
   content: "";
-  background: url('../static/images/protest1.jpeg') no-repeat center center;
+  background: url('../static/images/protest1-min-small.jpeg') no-repeat center center;
   background-size:cover;
   opacity: .5;
   top: 0;
