@@ -83,6 +83,63 @@ def from_twilio():
 
 ### DB Maintenance ###
 
+droporder = ['call', 'caller', 'campaign', 'login'] # Start with all tables using foreign keys
+createstr = {
+	"caller": "CREATE TABLE caller ("\
+		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
+		"phone text UNIQUE NOT NULL,"\
+		"zipcode text,"\
+		"calltime text,"\
+		"active integer,"\
+		"preference integer,"\
+		"topics text);",
+	"campaign": "CREATE TABLE campaign ("\
+		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
+		"message text,"\
+		"startdate int,"\
+		"enddate int,"\
+		"callobjective integer,"\
+		"offices text,"\
+		"targetparties text,"\
+		"targetname text,"\
+		"targetphone text);",
+	"call": "CREATE TABLE call ("\
+		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
+		"tstamp timestamp NOT NULL,"\
+		"callerid integer NOT NULL REFERENCES caller(id),"\
+		"campaignid integer NOT NULL REFERENCES campaign(id),"\
+		"targetphone text,"\
+		"targetname text,"\
+		"targetoffice text,"\
+		"status text,"\
+		"duration text,"\
+		"recording text);",
+	"login": "CREATE TABLE login ("\
+		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
+		"username text UNIQUE NOT NULL,"\
+		"passhash integer NOT NULL);",
+}
+recopystr = {
+	"caller": "INSERT INTO %s SELECT id, phone, zipcode, calltime, active, preference, topics FROM %s",
+	"campaign": "INSERT INTO %s SELECT id, message, startdate, enddate, callobjective, offices, targetparties, targetname, targetphone FROM %s",
+	"call": "INSERT INTO %s SELECT id, tstamp, callerid, campaignid, targetphone, targetname, targetoffice, status, duration, recording FROM %s",
+	"login": "INSERT INTO %s SELECT id, username, passhash FROM %s"
+}
+insertstr = {
+	"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?,?,?)",
+	"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?)",
+	"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?,?,?,?)",
+	"login": "INSERT INTO login VALUES (NULL,?,?)",
+}
+# XXX IMPORTANT XXX
+# Process to add a new column. Do NOT mix this up!
+# 1) Add the column name and type inside createstr 
+# 2) Add the string ", NULL" inside recopystr for each new column
+# 3) Add the string ",?" inside insertstr for each new column
+# 4) Look for all insertR() calls for the relevant table type, and edit to pass new parameter
+# 5) Run recopyDB() on Server
+# 6) Change each "NULL" from step #2 to the actual column name
+
 def connect_db():
 	databasefile = os.path.join(dir_path, 'onecall.sqlt')
 	# The sqlite3.PARSE_DECLTYPES is so that a timestamp column will get parsed correctly.
@@ -103,10 +160,10 @@ def get_db():
 	return g.sqlite_db
 
 def init_db():
-	db = get_db()
-	with app.open_resource('db.sql', mode='r') as f:
-		db.cursor().executescript(f.read())
-	db.commit()
+	for table in droporder:
+		sqlSend("DROP TABLE IF EXISTS %s" % table)		
+		sqlSend("DROP TABLE IF EXISTS %s" % table + "_old")		
+		sqlSend(createstr[table])
 
 def populateTestDB():
 	insertR('login',[None, 'admin', encrypt('admin')])
@@ -125,6 +182,32 @@ def populateTestDB():
 	# insertR('call',[None, datetime.now(), '1', '1', formatphonenumber('(202) 225-4965'), 'Nancy Pelosi', 'United States House of Representatives CA-12'])
 	# insertR('call',[None, datetime.now(), '1', '2', formatphonenumber('(202) 224-3553'), 'Barbara Boxer', 'United States Senate'])
 
+def recopyDB():
+	"""
+	Copy all the database tables
+	Note this would typically be used if a constraint has been removed and AFTER the "create" string was changed in the appropriate models/* file
+	This should normally only be called from quickupdate.py when server is NOT running
+	"""
+	# This list should match the list in cherryserver.py - if it doesnt then a constraint might fail
+	for table in droporder: # get rid of any leftover tables from botched attempts
+		sqlSend("DROP TABLE IF EXISTS %s" % table + "_old")	
+	for table in reversed(droporder):
+		recopy(table)
+	for table in droporder:
+		sqlSend("DROP TABLE IF EXISTS %s" % table + "_old")	
+
+def recopy(table):
+	"""
+	Copy an old table to a new one - with the same insert string
+	This ONLY works if there are no changes to the columns, only to constraints
+	if drop is True it will drop the old table, otherwise will leave it there and table should be dropped AFTER dependent tables copied
+	Normally called with drop=False as other tables will be pointing to the OLD version
+	of the table.
+	"""
+	oldname = table+"_old"
+	sqlSend("ALTER TABLE %s RENAME TO %s" % (table, oldname))
+	sqlSend(createstr[table])
+	sqlSend(recopystr[table] % (table, oldname))  # This is the line that will break if column order or type changes
 
 @app.cli.command('initdb')
 def initdb_command():
@@ -169,12 +252,6 @@ def insertR(table, r, update=False):
 	Note - can pass record as parameters and will auto-convert to id.
 	update = True If we want to write over existing entries rather than create a new one. Note that there is a uniqueness constraint on the caller.phone.
 	"""
-	insertstr = {
-		"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?,?)",
-		"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?)",
-		"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?,?,?,?)",
-		"login": "INSERT INTO login VALUES (NULL,?,?)",
-	}
 	if update and table=='caller': # Enforce uniqueness on caller phone numbers
 		c = find(table, ONEORNONE, phone=r[1])
 		if c:
@@ -408,13 +485,13 @@ def encrypt(password):
 	return None if password is None else pwd_context.encrypt(password)
 
 def get_original_request_url(request):
-    # request.url does not exactly equal the opened URL,
-    # because the query string gets unescaped in some places.
-    url = request.url.split('?')[0]
-    qs = request.environ.get('QUERY_STRING', '')
-    if qs:
-        url = '%s?%s' % (url, qs)
-    return url
+	# request.url does not exactly equal the opened URL,
+	# because the query string gets unescaped in some places.
+	url = request.url.split('?')[0]
+	qs = request.environ.get('QUERY_STRING', '')
+	if qs:
+		url = '%s?%s' % (url, qs)
+	return url
 
 def smsdispatch(num, smsin):
 	resp = twilio.twiml.Response()
@@ -493,9 +570,9 @@ def weighted_choice(choices):
    r = random.uniform(0, total)
    upto = 0
    for c, w in choices:
-      if upto + w >= r:
-         return c
-      upto += w
+		if upto + w >= r:
+			return c
+		upto += w
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ### URL Calls ###
@@ -551,14 +628,21 @@ def flushdb():
 	populateTestDB()
 	return redirect('/dashboard')
 
-@app.route("/backup")
+@app.route("/backupAndCopy")
 @must_login()
+def backupAndCopy():
+	"""
+	This backsup all database content, and recopies any new columns into the DB
+	"""
+	backup()
+	recopyDB()
+	return redirect('/dashboard')
+
 def backup():
 	"""
 	This backsup all database content
 	"""
 	os.system('cp -f '+dir_path+'/onecall.sqlt '+dir_path+'/backups/onecall_'+datetime.now().strftime('%Y-%m-%d')+'.sqlt >> '+log_path+'/os.log 2>&1') # copy to backup file
-	return redirect('/dashboard')
 
 @app.route("/downloaddb")
 @must_login()
@@ -597,7 +681,7 @@ def registerNewUser():
 			raise DisplayError("Invalid phone number.", 'landing.html')
 		else:
 			raise e
-	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY,PREFCALL],update=True)
+	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY,PREFCALL, None],update=True)
 	return render_template('thanks.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
@@ -673,7 +757,7 @@ def thanksredirect():
 @app.route("/findcallers")
 @must_login()
 def findcallers_via_web():
-	findcallers(None)
+	return findcallers(None)
 
 def findcallers(now=None):
 	"""
