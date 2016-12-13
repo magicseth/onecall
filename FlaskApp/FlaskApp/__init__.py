@@ -851,7 +851,7 @@ def logCallEnd():
 	call_id = request.args.get('call_id')
 	idUpdateFields('call', call_id, status=request.args.get('DialCallStatus'), duration=request.args.get('DialCallDuration'), recording=request.args.get('RecordingUrl'))
 	resp = twilio.twiml.Response()
-	resp.say('Nice work! We\'ll be in again touch soon.',voice='woman')
+	resp.say('Nice work! We\'ll be in touch again soon.',voice='woman')
 	return str(resp)
 
 if __name__ == "__main__":
