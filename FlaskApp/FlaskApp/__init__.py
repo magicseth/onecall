@@ -824,10 +824,17 @@ def text_seth():
 @from_twilio()
 def callscript():
 	camp = campaign(request.args.get('campaignid'))
-	clr = caller(request.args.get('callerid'))
+	caller_id = request.args.get('callerid')
+	clr = caller(caller_id)
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
 	app.logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id'])+' starting with '+targets[0]['name'])
+	r = redis.Redis('localhost') # Is this limited to localhost?
+	userFirstCall = r.setnx("first_call" + caller_id, 1)
+
 	resp = twilio.twiml.Response()
+	if userFirstCall:
+		resp.play("http://onecall.today/static/intros/intro.wav")
+		pass
 	print camp['messageurl']
 	if camp['messageurl']:
 		resp.play(camp['messageurl'])
