@@ -671,9 +671,9 @@ def registerNewUser():
 		raise DisplayError("Unrecognized Zipcode", 'landing.html')
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
 	try:
-		text_number(ph, "Welcome to OneCall. We make phone activism simple. Soon we'll give you a call with info on how to help save the world.")
-		text_number(ph, "We'll give you some talking points. If you want to make the call we'll connect the phone for you. 3 minutes. Huge Impact.")
-		text_number(ph, "To make your first call now, text CALL. If you didn't mean to sign up, text NEVER. For more information text HELP.")
+		text_number(ph, "Welcome to OneCall. We make phone activism simple. Soon we'll give you a call with info on how to help save the world.\n\n\n\
+		We'll give you some talking points. If you want to make the call we'll connect the phone for you. 3 minutes. Huge Impact.\n\n\n\
+		To make your first call now, text CALL. If you didn't mean to sign up, text NEVER. For more information text HELP.\n\n\n")
 	except TwilioRestException as e:
 		if e.code == 21211:
 			raise DisplayError("Invalid phone number.", 'landing.html')
