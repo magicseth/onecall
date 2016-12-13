@@ -122,7 +122,7 @@ createstr = {
 }
 recopystr = {
 	"caller": "INSERT INTO %s SELECT id, phone, zipcode, calltime, active, preference, topics FROM %s",
-	"campaign": "INSERT INTO %s SELECT id, message, startdate, enddate, callobjective, offices, targetparties, targetname, targetphone, NULL FROM %s",
+	"campaign": "INSERT INTO %s SELECT id, message, startdate, enddate, callobjective, offices, targetparties, targetname, targetphone, messageurl FROM %s",
 	"call": "INSERT INTO %s SELECT id, tstamp, callerid, campaignid, targetphone, targetname, targetoffice, status, duration, recording FROM %s",
 	"login": "INSERT INTO %s SELECT id, username, passhash FROM %s"
 }
