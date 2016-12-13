@@ -102,7 +102,8 @@ createstr = {
 		"offices text,"\
 		"targetparties text,"\
 		"targetname text,"\
-		"targetphone text);",
+		"targetphone text,"\
+		"messageurl text);",
 	"call": "CREATE TABLE call ("\
 		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
 		"tstamp timestamp NOT NULL,"\
@@ -121,13 +122,13 @@ createstr = {
 }
 recopystr = {
 	"caller": "INSERT INTO %s SELECT id, phone, zipcode, calltime, active, preference, topics FROM %s",
-	"campaign": "INSERT INTO %s SELECT id, message, startdate, enddate, callobjective, offices, targetparties, targetname, targetphone FROM %s",
+	"campaign": "INSERT INTO %s SELECT id, message, startdate, enddate, callobjective, offices, targetparties, targetname, targetphone, NULL FROM %s",
 	"call": "INSERT INTO %s SELECT id, tstamp, callerid, campaignid, targetphone, targetname, targetoffice, status, duration, recording FROM %s",
 	"login": "INSERT INTO %s SELECT id, username, passhash FROM %s"
 }
 insertstr = {
 	"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?,?,?)",
-	"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?)",
+	"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?,?)",
 	"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?,?,?,?)",
 	"login": "INSERT INTO login VALUES (NULL,?,?)",
 }
