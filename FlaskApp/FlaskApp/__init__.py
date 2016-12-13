@@ -530,11 +530,8 @@ def smsdispatch(num, smsin):
 		resp.message("Please send feedback to us via email: improve@onecall.today")
 	else: # Send back list of possible commands
 		resp.message("Here are the commands I understand:")
-		resp.pause(length=3)
 		resp.message("When may we call?\n\nDAILY one call / week day\nWEEKLY one call a week\nNEVER no more calls")
-		resp.pause(length=3)
 		resp.message("How should we reach you?\n\nTEXTS get briefings via texts\nCALLS get briefings via calls\n\nCALL Make a call now")
-		resp.pause(length=3)
 		resp.message("Text me one of the all-caps words to interact change your preferences.")
 	return resp
 
