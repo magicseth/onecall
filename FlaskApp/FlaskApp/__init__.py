@@ -692,6 +692,7 @@ def registerNewCampaign():
 	else: 
 		campaignid = None	
 	message = request.form.get('message')
+	messageurl = request.form.get('messageurl')
 	startdate = int(time())+int(request.form.get('startdate') or 0)*24*60*60 # Defaults campaign start date to right now
 	enddate = startdate+int(request.form.get('enddate') or 30)*24*60*60 # Defaults campaign lifespan to 30 days
 	callobjective = int(request.form.get('callobjective') or 1000)  # Defaults to 1000 call objective
@@ -704,8 +705,7 @@ def registerNewCampaign():
 
 	if required and (targetname==''): # Must be a targeted campaign, but no name provided
 		raise DisplayError("Name required for targeted campaigns", 'dashboard.html')
-
-	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone])
+	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone,messageurl])
 	return render_template('thanks.html')
 
 @app.route('/registerNewLogin', methods=['GET', 'POST'])
@@ -827,7 +827,11 @@ def callscript():
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
 	app.logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id'])+' starting with '+targets[0]['name'])
 	resp = twilio.twiml.Response()
-	resp.say(camp['message'],voice='woman')
+	print camp['messageurl']
+	if camp['messageurl']:
+		resp.play(camp['messageurl'])
+	else:
+		resp.say(camp['message'],voice='woman')
 	resp.pause(length="1")
 	if targets:
 		resp.say("If you'd like to be connected to " + targets[0]['name'] +", please remain on the line")
