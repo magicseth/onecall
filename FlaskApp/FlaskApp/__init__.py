@@ -561,6 +561,7 @@ def start_campaign(campaign, caller):
 		to=caller['phone'],  # Any phone number
 		from_=our_number, # Must be a valid Twilio number
 		if_machine="Hangup",
+		timeout="8",
 		method="GET",
 		url="https://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
 
