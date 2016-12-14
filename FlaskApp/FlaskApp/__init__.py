@@ -443,6 +443,9 @@ def caller(id, nullbehavior=ONLYONE):
 	"""
 	return find('caller', nullbehavior, id=id)
 
+def callerByNumber(number, nullbehavior=ONLYONE):
+	return find('caller', nullbehavior, phone=formatphonenumber(number))
+
 def call(id, nullbehavior=ONLYONE):
 	"""
 	Takes an ID, returns a dict object from the corresponding database row
@@ -825,12 +828,30 @@ def text_seth():
 									 body="Hello there!")
 	return "success"
 
-@app.route("/callscript", methods=['GET'])
+@app.route("/incomingcall", methods=['GET', 'POST'])
 @from_twilio()
+def incoming_call():
+	caller_phone = request.args.get('From')
+	print caller_phone
+	clr = callerByNumber(caller_phone)
+	camp = getNextCampaign(clr)
+	if camp:
+		return (callscript(camp, clr))
+	resp = resp = twilio.twiml.Response()
+	resp.say("Thank you for calling OneCall. We have no calls for you right now.")
+	return str(resp)
+
+
+
+@app.route("/callscript", methods=['GET'])
 def callscript():
 	camp = campaign(request.args.get('campaignid'))
 	caller_id = request.args.get('callerid')
 	clr = caller(caller_id)
+	return callscript(camp, clr)
+
+def callscript(camp, clr):
+	caller_id=str(clr['id'])
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
 	app.logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id'])+' starting with '+targets[0]['name'])
 	r = redis.Redis('localhost') # Is this limited to localhost?
@@ -860,7 +881,7 @@ def nextTargetScript():
 	resp = twilio.twiml.Response()
 	resp.pause(length="1")
 	if targets and len(targets)>target_index:
-		resp.say("If you'd like to be connected to " + targets[target_index]['name'] +", please remain on the line")
+		resp.say("If you'd like to be connected to " + targets[target_index]['name'] +", please remain on the line. Press star when you are finished")
 		resp.pause(length="4")
 		if target_index == 0:
 			lines = textwrap.wrap(camp['message'], 160, break_long_words=False)
