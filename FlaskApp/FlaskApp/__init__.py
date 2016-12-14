@@ -21,6 +21,7 @@ import os
 import re
 import sqlite3
 import redis
+import textwrap
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -414,7 +415,10 @@ def listTargets(campaign, caller):
 	"""
 	targets = []
 	if campaign['targetname'] and campaign['targetphone']:
-		targets = [{'name':campaign['targetname'], 'phones':[campaign['targetphone']], 'office': campaign['offices'] or 'N/A'}]
+		targetnames = campaign['targetname'].split(',')
+		targetphones = campaign['targetphone'].split(',')
+		for i in range(0,len(targetnames)):
+			targets = targets +[{'name':targetnames[i], 'phones':[targetphones[i]], 'office': campaign['offices'] or 'N/A'}]
 	else:
 		cd = getCivicData(caller['zipcode'])
 		officialsenum = [(k['officialIndices'],k['name']) for k in cd['offices'] if ('roles' in k) and ([i for i in k['roles'] if i in campaign['offices']])]
@@ -702,7 +706,7 @@ def registerNewCampaign():
 	
 	required = 'dashboard.html' if (offices=='' or targetparties=='') else False # If there is no office or party selected, then it must be a targeted campaign
 	targetname = request.form.get('targetname')
-	targetphone = formatphonenumber(request.form.get('targetphone'), raiseerr=required)
+	targetphone = request.form.get('targetphone')
 
 	if required and (targetname==''): # Must be a targeted campaign, but no name provided
 		raise DisplayError("Name required for targeted campaigns", 'dashboard.html')
@@ -840,25 +844,48 @@ def callscript():
 		resp.play(camp['messageurl'])
 	else:
 		resp.say(camp['message'],voice='woman')
+	url="/nexttarget?campaignid=" + str(camp['id']) + "&callerid=" + str(clr['id']) + "&target_index=0"
+	resp.redirect(url)
+	return str(resp)
+
+@app.route("/nexttarget", methods=['GET', 'POST'])
+@from_twilio()
+def nextTargetScript():
+	camp = campaign(request.args.get('campaignid'))
+	caller_id = request.args.get('callerid')
+	clr = caller(caller_id)
+	target_index = int(request.args.get('target_index'))
+	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
+	resp = twilio.twiml.Response()
 	resp.pause(length="1")
-	if targets:
-		resp.say("If you'd like to be connected to " + targets[0]['name'] +", please remain on the line")
+	if targets and len(targets)>target_index:
+		resp.say("If you'd like to be connected to " + targets[target_index]['name'] +", please remain on the line")
 		resp.pause(length="4")
-		resp.sms(camp['message'])
-		resp.say("Connecting you to " + targets[0]['name'])
-		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'], CALLSETUP, None, None])
-		resp.dial(record="record-from-answer-dual", hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)).number(targets[0]['phones'][0])
+		if target_index == 0:
+			lines = textwrap.wrap(camp['message'], 160, break_long_words=False)
+			for line in lines:
+				resp.sms(line)
+		resp.say("Connecting you to " + targets[target_index]['name'])
+		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[target_index]['phones'][0],targets[target_index]['name'],targets[target_index]['office'], CALLSETUP, None, None])
+		resp.dial(record="record-from-answer-dual", hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)+"&target_index="+str(target_index)+"&campaignid="+str(camp['id'])+"&caller_id=" + str(clr['id'])).number(targets[target_index]['phones'][0])
+		url="/nexttarget?campaignid=" + str(camp['id']) + "&callerid=" + str(clr['id']) + "&target_index=" + str(target_index+1)
+		resp.redirect(url)
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
-		resp.say("Sorry we couldn't find anyone in your area to call about today's campaign. We'll try again tomorrow with another issue!")
+		resp.say('Nice work! We\'ll be in touch again soon.',voice='woman')
 	return str(resp)
 
 @app.route("/logCallEnd", methods=['GET', 'POST'])
 @from_twilio()
 def logCallEnd():
 	call_id = request.args.get('call_id')
+	caller_id = request.args.get('caller_id')
+	target_index = request.args.get('target_index')
+	campaign_id=request.args.get('campaignid')
 	idUpdateFields('call', call_id, status=request.args.get('DialCallStatus'), duration=request.args.get('DialCallDuration'), recording=request.args.get('RecordingUrl'))
 	resp = twilio.twiml.Response()
-	resp.say('Nice work! We\'ll be in touch again soon.',voice='woman')
+	url="/nexttarget?campaignid=" + campaign_id + "&callerid=" + caller_id + "&target_index=" + str(int(target_index)+1)
+	resp.redirect(url)
+
 	return str(resp)
 
 if __name__ == "__main__":
