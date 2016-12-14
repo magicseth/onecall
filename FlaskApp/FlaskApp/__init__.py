@@ -845,7 +845,7 @@ def callscript():
 		resp.say("If you'd like to be connected to " + targets[0]['name'] +", please remain on the line")
 		resp.pause(length="4")
 		resp.sms(camp['message'])
-		resp.say("Connecting you to " + targets[0]['name'] + ' who works as ' + targets[0]['office'])
+		resp.say("Connecting you to " + targets[0]['name']
 		call_id = insertR('call',[None,datetime.now(),clr['id'],camp['id'],targets[0]['phones'][0],targets[0]['name'],targets[0]['office'], CALLSETUP, None, None])
 		resp.dial(record="record-from-answer-dual", hangupOnStar=True, method='GET', action="/logCallEnd?call_id="+str(call_id)).number(targets[0]['phones'][0])
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
