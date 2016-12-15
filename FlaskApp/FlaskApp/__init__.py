@@ -421,7 +421,9 @@ def listTargets(campaign, caller):
 			targets = targets +[{'name':targetnames[i], 'phones':[targetphones[i]], 'office': campaign['offices'] or 'N/A'}]
 	else:
 		cd = getCivicData(caller['zipcode'])
+		app.logger.error(cd)
 		officialsenum = [(k['officialIndices'],k['name']) for k in cd['offices'] if ('roles' in k) and ([i for i in k['roles'] if i in campaign['offices']])]
+		app.logger.error(officialsenum)
 		for indices,office in officialsenum:
 			for i in indices:
 				if ('phones' in cd['officials'][i]) and (cd['officials'][i]['party'] in campaign['targetparties']):
