@@ -795,6 +795,7 @@ def startNextCampaign(caller):
 
 def getNextCampaign(caller):
 	campaigns = listCampaigns(caller)
+	print campaigns
 	campsWITHtargets = [camp for camp in campaigns if listTargets(camp,caller)] # ignore any campaigns that don't apply to the current caller
 	if campsWITHtargets:
 		return chooseCampaign(campsWITHtargets)
@@ -834,7 +835,9 @@ def incoming_call():
 	caller_phone = request.args.get('From')
 	print caller_phone
 	clr = callerByNumber(caller_phone)
+	print clr
 	camp = getNextCampaign(clr)
+	print camp
 	if camp:
 		return (callscript(camp, clr))
 	resp = resp = twilio.twiml.Response()
