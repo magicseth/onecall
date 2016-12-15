@@ -386,7 +386,7 @@ def printall(): # Prints the entire database to the console window
 			text = text+'<br>'+'Name: '+name+'<br>'
 			cursor.execute("SELECT * FROM "+name)
 			text = text+'Columns: '+'<br>'+' | '.join([description[0] for description in cursor.description])+'<br>'
-			text = text+'Data: '+'<br>'+'<br>'.join([' | '.join([str(f) for f in row]) for row in cursor.fetchall()])+'<br>'
+			text = text+'Data: '+'<br>'+'<br>'.join([' | '.join([repr(f) for f in row]) for row in cursor.fetchall()])+'<br>'
 		text = text+'-'*100
 	return text
 
