@@ -532,7 +532,7 @@ def smsdispatch(num, smsin):
 		resp.message("Good choice. You're now switched over to receive SMS instead of calls.")
 		idUpdateFields('caller', caller['id'], preference=PREFSMS)
 	elif smsin == "calls": ### switches you to calls instead of texts
-		resp.message("Welcom back! You're now switched over to receive calls instead of SMS.")
+		resp.message("Welcome back! You're now switched over to receive calls instead of SMS.")
 		idUpdateFields('caller', caller['id'], preference=PREFCALL)
 	elif smsin == "feedback": ### lets you comment on the system
 		resp.message("Please send feedback to us via email: improve@onecall.today")
