@@ -795,7 +795,7 @@ def startNextCampaign(caller):
 
 def getNextCampaign(caller):
 	campaigns = listCampaigns(caller)
-	app.logger.info(campaigns)
+	app.logger.error(campaigns)
 	campsWITHtargets = [camp for camp in campaigns if listTargets(camp,caller)] # ignore any campaigns that don't apply to the current caller
 	if campsWITHtargets:
 		return chooseCampaign(campsWITHtargets)
@@ -833,11 +833,11 @@ def text_seth():
 @from_twilio()
 def incoming_call():
 	caller_phone = request.args.get('From')
-	app.logger.info(caller_phone)
+	app.logger.error(caller_phone)
 	clr = callerByNumber(caller_phone)
-	app.logger.info(clr)
+	app.logger.error(clr)
 	camp = getNextCampaign(clr)
-	app.logger.info(camp)
+	app.logger.error(camp)
 	if camp:
 		return (callscript(camp, clr))
 	resp = resp = twilio.twiml.Response()
