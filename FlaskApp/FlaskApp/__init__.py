@@ -665,6 +665,8 @@ def registerNewUser():
 	"""
 	This function brings in a new user
 	"""
+	if len(request.form) == 0:
+		return redirect('/') # go home, as bad link!		
 	if request.form.get('callerid'): 
 		callerid = int(request.form.get('callerid'))
 	else: 
