@@ -692,7 +692,7 @@ def registerNewUser():
 		else:
 			raise e
 	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY,PREFCALL, None],update=True)
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
 @must_login()
@@ -719,7 +719,7 @@ def registerNewCampaign():
 	if required and (targetname==''): # Must be a targeted campaign, but no name provided
 		raise DisplayError("Name required for targeted campaigns", 'dashboard.html')
 	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone,messageurl])
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/registerNewLogin', methods=['GET', 'POST'])
 @must_login()
@@ -733,7 +733,7 @@ def registerNewLogin():
 		raise DisplayError("Both Username and Password required", 'dashboard.html')
 
 	insertR('login',[None,username, encrypt(password)])
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/editTableValue', methods=['GET', 'POST'])
 @must_login()
@@ -755,7 +755,7 @@ def editTableValue():
 		raise DisplayError("ID, Calltime, and Tstamp are not supported yet", 'dashboard.html')
 
 	idUpdateFields(table, id, **{field:value})
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/thanks')
 def thanksredirect():
