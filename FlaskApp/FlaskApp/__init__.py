@@ -588,7 +588,7 @@ def weighted_choice(choices):
 @app.route("/")
 def populatelanding():
 	if not session.get('logged_in'):
-		return render_template('landing.html')
+		return render_template('today.html')
 	else:
 		return render_template('dashboard.html')
 
