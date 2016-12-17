@@ -1,0 +1,92 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" charset="UTF-8" name="viewport" content="width=device-width, initial-scale=0.8"/>
+      <title>OneCall Today</title>
+      <link rel="stylesheet" href="./static/onecall.css" type="text/css" />
+      <!--<script src="prototype.js"></script>-->
+      <!--<script src="lumeter.js"></script>-->
+  </head>
+  <body>
+    <div class='section picfill'>
+      <div class="fitimage redy"></div>
+      <img class="fitimage" src="../static/images/protest1.jpeg">
+      <div class='header1 centered'>
+        <strong>WE HELP YOU <br>
+        <div class="slider">
+          <div>
+            <p>BE HEARD.</p>
+            <p>protect the environment.</p>
+            <p>stop trump.</p>
+            <p>demilitarize the police.</p>
+            <p>fight racial inequality.</p>
+            <p>expand LGBTQ rights.</p>
+            <p>get money out of politics.</p>
+            <p>protect women's rights.</p>
+          </div>
+        </div>
+        </strong>
+      </div>
+    </div>
+    <div class='section bluey'>
+      <div class='header2 centered'>
+        Our representative democracy depends on your involvement. 
+        OneCall makes it easy to contact your representatives about progressive issues that matter to you.
+      </div>
+    </div>
+    <div class='section redy'>
+      <div class='header3 centered'>
+        Annoyingly, a phone call is the most effective way to reach your representatives, 
+        but we've taken the pain out of the process.
+      </div>
+      <div class='container centered'>
+        <div class='inline third'>
+          <img class="icon" src="../static/images/quill.png">
+          <div>
+            <strong>1</strong> <br>
+            Sign up below.
+          </div>
+        </div>
+        <div class='inline third'>
+          <img class="icon" src="../static/images/phone.png">
+          <div>
+            <strong>2</strong> <br>
+            During your commute, get briefed on an urgent issue then instantly connected to your relevant representative.
+          </div>
+        </div>
+        <div class='inline third'>
+          <img class="icon" src="../static/images/megaphone.png">
+          <div>
+            <strong>3</strong> <br>
+            Get your voice heard!
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class='section'>
+      <form style="margin: 30px" action="registerNewUser" method="Post">
+        <table class="center">
+          <tr><td><input class="inp" type="number" name="phonenumber" placeholder="Your Phone Number" required min="1000000000" max="19999999999"></td></tr>
+          <tr><td><input class="inp" type="number" name="zipcode" placeholder="Your Zip Code" max="99999"></td></tr>
+          <tr><td>
+            <span style="color: #666">CALL ME AT</span>
+            <select class="drop" name="hour">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8" selected=rue>8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="0">12</option>
+            </select> <span style="font-size: 20px">:</span>
+            <select class="drop" name="minute">
+              <option value="00">00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+            </select>
+            <select class="drop" name="ampm">
+              <option value="0">AM</option><option value="12">PM</option>
+            </select></td></tr>
+          <tr><td><input class="btn bluey" type="submit" value="SIGN UP"></td></tr>
+        </table>
+      </form>
+    </div>
+    <div class='footer'>
+      <a style='float: left; margin: 10px;' href="mailto:improve@onecall.today?Subject=New%20Idea!">Contact Us!</a>
+      <a href="https://twitter.com/share" class="twitter-share-button" data-text="Awesome service--briefed every day on an urgent issue; then called by my representative to hear my opinion! Do it..." data-url="https://onecall.today" data-hashtags="" data-size="large" data-show-count="true">Tweet</a><script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+      <iframe src="https://www.facebook.com/plugins/share_button.php?href=https%3A%2F%2Fonecall.today&layout=button_count&size=large&mobile_iframe=true&width=84&height=28&appId" width="84" height="28" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowTransparency="true"></iframe>
+      <a style='float: right; margin: 10px' href="../login">© 2016 Leahpar Brothers</a>
+    </div>    
+  </body>
+</html>

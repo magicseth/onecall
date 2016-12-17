@@ -174,7 +174,7 @@ def populateTestDB():
 	# insertR('caller',[None, formatphonenumber('16177179014'), '94107', '2016-11-26 13:00:00', 1])
 	# insertR('caller',[None, formatphonenumber('1000000002'), '25443', '2016-11-26 14:00:00', 1])
 	# insertR('caller',[None, formatphonenumber('1000000003'), '10001', '2016-11-26 13:00:00', 0])
-	# insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'landing.html')
+	# insertR('caller',[None, formatphonenumber('1000000003'), '10002', '2016-11-26 13:00:00', 0],'today.html')
 
 	# insertR('campaign',[None, 'Sample script: Hello, my name is John or Jane Smith and I\'m calling from ABC organization in PDQ state regarding XYZ issue. Gun control is super important', 0, int(time())+604800, 1000, 'legislatorLowerBody, legislatorUpperBody', 'Republican, Democratic', None, None])
 	# insertR('campaign',[None, 'Civil rights are super important', 0, int(time())+604800, 1000, 'legislatorLowerBody', 'Republican', None, None])
@@ -401,9 +401,9 @@ def getCivicData(address):
 		response = urlopen(req)
 	except URLError as e:
 		if hasattr(e, 'reason'):
-			raise DisplayError(e.reason, 'landing.html')
+			raise DisplayError(e.reason, 'today.html')
 		elif hasattr(e, 'code'):
-			raise DisplayError("The server couldn't fulfill the request", 'landing.html')
+			raise DisplayError("The server couldn't fulfill the request", 'today.html')
 		return None  # Error
 	else: # everything is fine
 		return json.loads(response.read().decode('utf8'))
@@ -590,7 +590,7 @@ def weighted_choice(choices):
 @app.route("/")
 def populatelanding():
 	if not session.get('logged_in'):
-		return render_template('landing.html')
+		return render_template('today.html')
 	else:
 		return render_template('dashboard.html')
 
@@ -615,7 +615,7 @@ def dashboard():
 @app.route('/logout')
 def logout():
 	session.pop('logged_in', None)
-	return render_template('landing.html')
+	return render_template('today.html')
 
 @app.route("/dump")
 @must_login()
@@ -674,7 +674,7 @@ def registerNewUser():
 	else: 
 		callerid = None
 	zc = request.form.get('zipcode')
-	ph = formatphonenumber(request.form.get('phonenumber'),'landing.html')
+	ph = formatphonenumber(request.form.get('phonenumber'),'today.html')
 	ampm = int(request.form.get('ampm'))
 	hh = int(request.form.get('hour'))
 	mm = int(request.form.get('minute'))
@@ -682,7 +682,7 @@ def registerNewUser():
 		delta = ZipCodeDatabase()[zc].timezone
 		# ZipCode object fields: zip, city, state, longitude, latitude, timezone, dst
 	except:
-		raise DisplayError("Unrecognized Zipcode", 'landing.html')
+		raise DisplayError("Unrecognized Zipcode", 'today.html')
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
 	try:
 		text_number(ph, "Welcome to OneCall. We make phone activism simple. Soon we'll give you a call with info on how to help save the world.\n\n\n\
@@ -690,11 +690,11 @@ def registerNewUser():
 		To make your first call now, text CALL. If you didn't mean to sign up, text NEVER. For more information text HELP.\n\n\n")
 	except TwilioRestException as e:
 		if e.code == 21211:
-			raise DisplayError("Invalid phone number.", 'landing.html')
+			raise DisplayError("Invalid phone number.", 'today.html')
 		else:
 			raise e
 	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY,PREFCALL, None],update=True)
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
 @must_login()
@@ -721,7 +721,7 @@ def registerNewCampaign():
 	if required and (targetname==''): # Must be a targeted campaign, but no name provided
 		raise DisplayError("Name required for targeted campaigns", 'dashboard.html')
 	insertR('campaign',[campaignid,message,startdate,enddate,callobjective,offices,targetparties,targetname,targetphone,messageurl])
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/registerNewLogin', methods=['GET', 'POST'])
 @must_login()
@@ -735,7 +735,7 @@ def registerNewLogin():
 		raise DisplayError("Both Username and Password required", 'dashboard.html')
 
 	insertR('login',[None,username, encrypt(password)])
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/editTableValue', methods=['GET', 'POST'])
 @must_login()
@@ -757,7 +757,7 @@ def editTableValue():
 		raise DisplayError("ID, Calltime, and Tstamp are not supported yet", 'dashboard.html')
 
 	idUpdateFields(table, id, **{field:value})
-	return render_template('thanks.html')
+	return render_template('complete.html')
 
 @app.route('/thanks')
 def thanksredirect():
