@@ -33,7 +33,7 @@
 }
 
 .btn {
-  border: 1px solid;
+  border: 0px solid;
   color: #fff;
   border-color: #24a;
   background-color: #24a;
@@ -44,7 +44,7 @@
   padding-right: 16px;
   padding-top: 11px !important;
   padding-bottom: 11px !important;
-  font-size: 18px !important;
+  font-size: 25px !important;
 }
 
 .inp {
@@ -122,13 +122,14 @@ input[type=number]::-webkit-outer-spin-button {
   margin: 0px;
 }
 
-h1 {font-family: sans-serif; font-size: 52px; margin-top: 0px; text-shadow: 0 0 10px #fff;}  
+h1 {font-family: sans-serif; font-size: 52px; margin-top: 0px;}  
 h2 {font-family: sans-serif; font-size: 30px; margin-bottom: 0px;}
 h3 {margin: 30px 0px 0px 0px;}
 
 body {
   font-family: Arial;
   margin: 0px;
+  color: white;
 }
 
 #body::after {
@@ -156,22 +157,21 @@ body {
 
 .header1 {
   font-size: 60px; 
-  color: white;
-  text-shadow: 0 0 10px #000;
+  color: inherit;
   max-width: 70%;
-  margin: 275px auto;
+  margin: 200px auto;
 }
 
 .header2 {
   font-size: 30px; 
-  color: white;
+  color: inherit;
   max-width: 80%;
   margin: 30px auto;
 }
 
 .header3 {
   font-size: 20px; 
-  color: white;
+  color: inherit;
   max-width: 50%;
   margin: 20px auto;
 }
@@ -181,7 +181,7 @@ body {
 }
 
 .inline{
-  color: white;
+  color: inherit;
   display: inline-block;
   vertical-align:top;
   margin: auto;
@@ -194,6 +194,15 @@ body {
 .third{
   max-width: 25%;
   margin: 20px 3%;
+}
+
+form div {
+  max-width: 30%;
+  margin: 10px auto;
+}
+
+.formelement {
+  display: inline-block;
 }
 
 .picfill {
@@ -218,13 +227,18 @@ body {
   background-color: #ed008c
 }
 
+.whitey {
+  background-color: #ffffff;
+  color:#ed008c;
+}
+
 .icon {
   height: 80px;
   margin: 10px;
 }
 
-.footer a {
-  color: #ccc
+.block {
+  display: inline-block;
 }
 
 .slider {
@@ -232,13 +246,28 @@ body {
   overflow: hidden;
 }
 
-.slider div, .slider div p {
-  margin: 10;
-  padding: 0;
+@media only screen and (max-width: 500px) {
+  .slider div {
+    font-size: 30px;
+  }
+
+  .header1 {
+    font-size: 40px; 
+    margin: 100px auto;
+  }
+
+  .formelement {
+    display: '';
+  }
+}
+
+.slideoption {
+  height: 80px;
+  display: block;
+  margin: 0;
 }
 
 .slider div {
-  /*animation: slide 10s 2s infinite;*/
   animation: slide;
   animation-duration: 15s;
   animation-delay: 3s;
