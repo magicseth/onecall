@@ -197,7 +197,6 @@ body {
 }
 
 form div {
-  max-width: 30%;
   margin: 10px auto;
 }
 
@@ -257,7 +256,7 @@ form div {
   }
 
   .formelement {
-    display: '';
+    display: block;
   }
 }
 
