@@ -8,7 +8,7 @@ from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
 from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY, \
-		CALLCOMPLETED, CALLANSWERED, PREFCALL, PREFSMS, CALLSETUP
+		CALLCOMPLETED, CALLANSWERED, PREFCALL, PREFSMS, CALLSETUP, CALLBUSY, CALLFAILED, CALLCANCELED, CALLNOANSWER
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
@@ -565,9 +565,11 @@ def start_campaign(campaign, caller):
 	call = client.calls.create(
 		to=caller['phone'],  # Any phone number
 		from_=our_number, # Must be a valid Twilio number
-		if_machine="Hangup",
-		timeout="8",
+		if_machine="Continue",
+		timeout="15",
 		method="GET",
+		status_callback="https://onecall.today/callstatus?callerid=" + str(caller['id']),
+		status_method="GET",		
 		url="https://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
 
 def chooseCampaign(campaigns):
@@ -854,6 +856,12 @@ def incoming_call():
 def callscript():
 	camp = campaign(request.args.get('campaignid'))
 	caller_id = request.args.get('callerid')
+	answered_by = request.args.get('AnsweredBy')
+	if answered_by == "machine":
+		resp = twilio.twiml.Response()
+		resp.hangup()
+		callusback(caller_id)
+		return str(resp)
 	clr = caller(caller_id)
 	return callscript(camp, clr)
 
@@ -902,6 +910,22 @@ def nextTargetScript():
 	else: # The campaign should not get this far, if the caller has no targets for it, would be dealt with in findCallers()
 		resp.say('Nice work! We\'ll be in touch again soon.',voice='woman')
 	return str(resp)
+
+@app.route("/callstatus", methods=['GET'])
+@from_twilio()
+def callstatus():
+	status = request.args.get('CallStatus')
+	caller_id = request.args.get('callerid')
+	if status in [CALLBUSY, CALLFAILED, CALLCANCELED, CALLNOANSWER]:
+		#failed to connect, let's text them instead.
+		print "call us baq"
+		callusback(caller_id)
+		pass
+	return "Ok"
+
+def callusback(caller_id):
+	clr = caller(caller_id)
+	text_caller(clr, "We tried calling you. When you've got 3 minutes, give us a call back, and we'll give you the daily briefing! " + our_number)
 
 @app.route("/logCallEnd", methods=['GET', 'POST'])
 @from_twilio()
