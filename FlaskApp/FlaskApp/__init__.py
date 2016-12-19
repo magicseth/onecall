@@ -844,8 +844,11 @@ def receive_sms():
 	senderid = sender['id'] if sender else insertR('caller',[None, number, INACTIVE, PREFUNREG, WEEKDAY])
 	insertR('sms',[None, now, senderid, None, message_body, SMSIN])
 	resp = smsdispatch(number, message_body)
-	app.logger.error(ET.fromstring(str(resp)).findall('Body'))
-	for body in ET.fromstring(str(resp)).findall('Body'):
+	app.logger.error('begin test')
+	app.logger.error(resp.findall('Response/Message/Body'))
+	app.logger.error(resp.findall('Body'))
+	app.logger.error(resp.getroot().findall('Body'))
+	for body in resp.findall('Response/Message/Body'):
 		insertR('sms',[None, now, senderid, None, body.text, SMSOUT])	
 	app.logger.info(resp)
 	return str(resp)
