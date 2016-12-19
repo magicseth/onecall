@@ -8,7 +8,8 @@ from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
 from oct_constants import NULLNONE, ONEORNONE, ONLYONE, WEEKDAY, INACTIVE, MONDAY, \
-		CALLCOMPLETED, CALLANSWERED, PREFCALL, PREFSMS, CALLSETUP, CALLBUSY, CALLFAILED, CALLCANCELED, CALLNOANSWER
+		CALLCOMPLETED, CALLANSWERED, CALLSETUP, CALLBUSY, CALLFAILED, CALLCANCELED, CALLNOANSWER, \
+		SMSIN, SMSOUT, PREFCALL, PREFSMS, PREFUNREG
 from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
@@ -84,7 +85,7 @@ def from_twilio():
 
 ### DB Maintenance ###
 
-droporder = ['call', 'caller', 'campaign', 'login'] # Start with all tables using foreign keys
+droporder = ['call', 'sms', 'caller', 'campaign', 'login'] # Start with all tables using foreign keys
 createstr = {
 	"caller": "CREATE TABLE caller ("\
 		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
@@ -120,23 +121,32 @@ createstr = {
 		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
 		"username text UNIQUE NOT NULL,"\
 		"passhash integer NOT NULL);",
+	"sms": "CREATE TABLE sms ("\
+		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
+		"tstamp timestamp NOT NULL,"\
+		"callerid integer NOT NULL REFERENCES caller(id),"\
+		"campaignid integer NOT NULL REFERENCES campaign(id),"\
+		"content text,"\
+		"status text);",
 }
 recopystr = {
 	"caller": "INSERT INTO %s SELECT id, phone, zipcode, calltime, active, preference, topics FROM %s",
 	"campaign": "INSERT INTO %s SELECT id, message, startdate, enddate, callobjective, offices, targetparties, targetname, targetphone, messageurl FROM %s",
 	"call": "INSERT INTO %s SELECT id, tstamp, callerid, campaignid, targetphone, targetname, targetoffice, status, duration, recording FROM %s",
-	"login": "INSERT INTO %s SELECT id, username, passhash FROM %s"
+	"login": "INSERT INTO %s SELECT id, username, passhash FROM %s",
+	"sms": "INSERT INTO %s SELECT id, tstamp, callerid, campaignid, content, status FROM %s",
 }
 insertstr = {
 	"caller":"INSERT INTO caller VALUES (NULL,?,?,?,?,?,?)",
 	"campaign": "INSERT INTO campaign VALUES (NULL,?,?,?,?,?,?,?,?,?)",
 	"call": "INSERT INTO call VALUES (NULL,?,?,?,?,?,?,?,?,?)",
 	"login": "INSERT INTO login VALUES (NULL,?,?)",
+	"sms": "INSERT INTO sms VALUES (NULL,?,?,?,?,?)",
 }
 # XXX IMPORTANT XXX
 # Process to add a new column. Do NOT mix this up!
 # 1) Add the column name and type inside createstr 
-# 2) Add the string ", NULL" inside recopystr for each new column
+# 2) Add the string ", NULL" inside recopystr for each new column    *** use real column names if creating new table entirely
 # 3) Add the string ",?" inside insertstr for each new column
 # 4) Look for all insertR() calls for the relevant table type, and edit to pass new parameter
 # 5) Run recopyDB() on Server
@@ -184,6 +194,8 @@ def populateTestDB():
 	# insertR('call',[None, datetime.now(), '1', '1', formatphonenumber('(202) 225-4965'), 'Nancy Pelosi', 'United States House of Representatives CA-12'])
 	# insertR('call',[None, datetime.now(), '1', '2', formatphonenumber('(202) 224-3553'), 'Barbara Boxer', 'United States Senate'])
 
+	# insertR('sms',[None, datetime.now(), '1', '2', 'This sms was incoming', SMSIN])	
+
 def recopyDB():
 	"""
 	Copy all the database tables
@@ -207,9 +219,12 @@ def recopy(table):
 	of the table.
 	"""
 	oldname = table+"_old"
-	sqlSend("ALTER TABLE %s RENAME TO %s" % (table, oldname))
-	sqlSend(createstr[table])
-	sqlSend(recopystr[table] % (table, oldname))  # This is the line that will break if column order or type changes
+	if sqlFetch("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='"+table+"';")[0]['count(*)']: # If the table existed previously
+		sqlSend("ALTER TABLE %s RENAME TO %s" % (table, oldname))
+		sqlSend(createstr[table])
+		sqlSend(recopystr[table] % (table, oldname))  # This is the line that will break if column order or type changes
+	else: # the table is being added for the very first time
+		sqlSend(createstr[table])		
 
 @app.cli.command('initdb')
 def initdb_command():
@@ -504,6 +519,7 @@ def get_original_request_url(request):
 	return url
 
 def smsdispatch(num, smsin):
+	smsin = smsin.strip().lower()
 	resp = twilio.twiml.Response()
 	caller = find('caller',ONEORNONE,phone=num)
 	if caller is None:
@@ -820,8 +836,11 @@ def hello_monkey():
 @app.route("/incomingsms", methods=['POST', 'GET'])
 @from_twilio()
 def receive_sms():
-	number = request.form['From']
-	message_body = request.form['Body'].strip().lower()
+	number = formatphonenumber(request.form['From'])
+	message_body = request.form['Body']
+	sender = find('caller', ONEORNONE, phone="%"+number+"%")
+	senderid = sender['id'] if sender else insertR('caller',[None, number, INACTIVE, PREFUNREG, WEEKDAY])
+	insertR('sms',[None, datetime.now(), senderid, None, message_body, SMSIN])
 	resp = smsdispatch(number, message_body)
 	app.logger.info(resp)
 	return str(resp)

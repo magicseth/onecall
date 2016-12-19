@@ -23,3 +23,7 @@ CALLCANCELED = 'canceled'
 
 PREFCALL = 0
 PREFSMS = 1
+PREFUNREG = 2
+
+SMSIN = 'in'
+SMSOUT = 'out'
