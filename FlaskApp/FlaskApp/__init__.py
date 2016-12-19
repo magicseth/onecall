@@ -590,9 +590,9 @@ def start_campaign(campaign, clr):
 		if_machine="Continue",
 		timeout="15",
 		method="GET",
-		status_callback="https://5b45ddbf.ngrok.io/callstatus?callerid=" + str(clr['id']),
+		status_callback="https://onecall.today/callstatus?callerid=" + str(clr['id']),
 		status_method="GET",		
-		url="https://5b45ddbf.ngrok.io/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(clr['id']))
+		url="https://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(clr['id']))
 
 def chooseCampaign(campaigns):
 	return weighted_choice([(c,int(c['callobjective'])) for c in campaigns])
