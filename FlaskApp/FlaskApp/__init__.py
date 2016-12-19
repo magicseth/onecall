@@ -14,6 +14,7 @@ from oct_utils import sqlpair, flatten2d, checkNull
 from oct_local import dir_path, log_path # Add your own log_path like '/Users/jona/temp'
 from datetime import datetime, timedelta
 from time import time
+from xml.etree import ElementTree as ET
 import random
 import csv
 import json
@@ -555,10 +556,9 @@ def smsdispatch(num, smsin):
 	elif smsin == "feedback": ### lets you comment on the system
 		resp.message("Please send feedback to us via email: improve@onecall.today")
 	else: # Send back list of possible commands
-		resp.message("Here are the commands I understand:")
-		resp.message("When may we call?\n\nDAILY one call / week day\nWEEKLY one call a week\nNEVER no more calls")
-		resp.message("How should we reach you?\n\nTEXTS get briefings via texts\nCALLS get briefings via calls\n\nCALL Make a call now")
-		resp.message("Text me one of the all-caps words to interact change your preferences.")
+		resp.message("Reply with one of the capitalized words to change your preference:")
+		resp.message("When may we call?\nDAILY one call every weekday\nWEEKLY one call a week\nNEVER no more calls")
+		resp.message("How should we reach you?\nTEXTS get briefings via texts\nCALLS get briefings via calls\nCALL Make a call now")
 	return resp
 
 def text_caller(caller, message):
@@ -844,8 +844,9 @@ def receive_sms():
 	senderid = sender['id'] if sender else insertR('caller',[None, number, INACTIVE, PREFUNREG, WEEKDAY])
 	insertR('sms',[None, now, senderid, None, message_body, SMSIN])
 	resp = smsdispatch(number, message_body)
-	app.logger.error(resp)
-	insertR('sms',[None, now, senderid, None, resp.message, SMSOUT])	
+	app.logger.error(ET.fromstring(str(resp)).find('response/message/body'))
+	for body in ET.fromstring(str(resp)).find('response/message/body'):
+		insertR('sms',[None, now, senderid, None, body, SMSOUT])	
 	app.logger.info(resp)
 	return str(resp)
 
