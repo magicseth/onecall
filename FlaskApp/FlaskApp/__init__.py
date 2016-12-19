@@ -530,25 +530,25 @@ def get_original_request_url(request):
 def smsdispatch(smsin):
 	content = smsin['content'].strip().lower()
 	resp = twilio.twiml.Response()
-	caller = caller(smsin['callerid'])
-	if caller is None:
+	clr = caller(smsin['callerid'])
+	if clr is None:
 		resp.message("Oops! We can't find this phone in our records. Please go to https://onecall.today to sign up!")
 	elif content in["stop", "never"]: ### mark login as inactive
 		resp.message("Sorry to see you go! You can change your zipcode or call time by using the signup form at https://onecall.today, or start making calls again by replying to this SMS with 'START'")
-		idUpdateFields('caller', caller['id'], active=INACTIVE)
+		idUpdateFields('caller', clr['id'], active=INACTIVE)
 	elif content == "start": ### mark login as active
 		resp.message("Welcome back! You can change your zipcode or call time by using the signup form at https://onecall.today, or stop making calls all together by replying to this SMS with 'STOP'")
-		idUpdateFields('caller', caller['id'], active=WEEKDAY)
+		idUpdateFields('caller', clr['id'], active=WEEKDAY)
 	elif content == "daily": ### makes you eligible for weekday calls
 		resp.message("Excellent. You're now signed up for calls every day of the week.")
-		idUpdateFields('caller', caller['id'], active=WEEKDAY)
+		idUpdateFields('caller', clr['id'], active=WEEKDAY)
 	elif content == "weekly": ### limits calls to 1 per week
 		resp.message("Excellent. You're now signed up for calls one day a week.")
-		idUpdateFields('caller', caller['id'], active=MONDAY)
+		idUpdateFields('caller', clr['id'], active=MONDAY)
 	elif content == "list": ### shows all available campaigns for me right now
-		resp.message("Here are your upcoming campaigns:\n"+',\n'.join([str(c['id']) for c in listCampaigns(caller)])) # XXX Should add nickname column? message is too long
+		resp.message("Here are your upcoming campaigns:\n"+',\n'.join([str(c['id']) for c in listCampaigns(clr)])) # XXX Should add nickname column? message is too long
 	elif content == "history": ### show which calls I've made
-		resp.message("You've made the following calls:\n"+',\n'.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])]))
+		resp.message("You've made the following calls:\n"+',\n'.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=clr['id'])]))
 	elif content == "call": ### gives you the next call to make
 		campaign = startNextCampaign(caller)
 		if campaign:
@@ -557,10 +557,10 @@ def smsdispatch(smsin):
 			resp.message("It seems we don't have any calls for you right now! Thanks for your enthusiasm.")
 	elif content == "texts": ### switches you to texts instead of automatic calls
 		resp.message("Good choice. You're now switched over to receive SMS instead of calls.")
-		idUpdateFields('caller', caller['id'], preference=PREFSMS)
+		idUpdateFields('caller', clr['id'], preference=PREFSMS)
 	elif content == "calls": ### switches you to calls instead of texts
 		resp.message("Welcome back! You're now switched over to receive calls instead of SMS.")
-		idUpdateFields('caller', caller['id'], preference=PREFCALL)
+		idUpdateFields('caller', clr['id'], preference=PREFCALL)
 	elif content == "feedback": ### lets you comment on the system
 		resp.message("Please send feedback to us via email: improve@onecall.today")
 	else: # Send back list of possible commands
@@ -569,10 +569,10 @@ def smsdispatch(smsin):
 		resp.message("How should we reach you?\nTEXTS get briefings via texts\nCALLS get briefings via calls\nCALL Make a call now")
 	return resp
 
-def text_caller(caller, message):
+def text_caller(clr, message):
 	""" send an sms to caller """
-	insertR('sms',[None, datetime.now(), caller['id'], None, message, SMSOUT])	
-	text_number(caller['phone'], message)
+	insertR('sms',[None, datetime.now(), clr['id'], None, message, SMSOUT])	
+	text_number(clr['phone'], message)
 
 def text_number(number, message):
 	""" send an sms to caller """
@@ -582,17 +582,17 @@ def text_number(number, message):
 		from_=our_number,
 		body=message)
 
-def start_campaign(campaign, caller):
+def start_campaign(campaign, clr):
 	client = TwilioRestClient(account_sid, auth_token)
 	call = client.calls.create(
-		to=caller['phone'],  # Any phone number
+		to=clr['phone'],  # Any phone number
 		from_=our_number, # Must be a valid Twilio number
 		if_machine="Continue",
 		timeout="15",
 		method="GET",
-		status_callback="https://onecall.today/callstatus?callerid=" + str(caller['id']),
+		status_callback="https://5b45ddbf.ngrok.io/callstatus?callerid=" + str(clr['id']),
 		status_method="GET",		
-		url="https://onecall.today/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(caller['id']))
+		url="https://5b45ddbf.ngrok.io/callscript?campaignid=" + str(campaign['id']) + "&callerid=" + str(clr['id']))
 
 def chooseCampaign(campaigns):
 	return weighted_choice([(c,int(c['callobjective'])) for c in campaigns])
