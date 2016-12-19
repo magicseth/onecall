@@ -563,6 +563,7 @@ def smsdispatch(num, smsin):
 
 def text_caller(caller, message):
 	""" send an sms to caller """
+	insertR('sms',[None, datetime.now(), caller['id'], None, message, SMSOUT])	
 	text_number(caller['phone'], message)
 
 def text_number(number, message):
@@ -702,7 +703,7 @@ def registerNewUser():
 	calltime = datetime.today().replace(hour=(ampm+hh-delta)%24, minute=mm, second=0, microsecond=0) # Everything stored in UTC timezone!
 	try:
 		text_number(ph, "Welcome to OneCall. We make phone activism simple. Soon we'll give you a call with info on how to help save the world.\n\n\n\
-		We'll give you some talking points. If you want to make the call we'll connect the phone for you. 3 minutes. Huge Impact.\n\n\n\
+		We'll give you some talking points. If you want to make the call we'll connect the phone for you. 3 minutes: huge impact.\n\n\n\
 		To make your first call now, text CALL. If you didn't mean to sign up, text NEVER. For more information text HELP.\n\n\n")
 	except TwilioRestException as e:
 		if e.code == 21211:
@@ -836,21 +837,16 @@ def hello_monkey():
 @app.route("/incomingsms", methods=['POST', 'GET'])
 @from_twilio()
 def receive_sms():
-	app.logger.error('begin')
 	number = formatphonenumber(request.form['From'])
-	app.logger.error('2')
 	message_body = request.form['Body']
-	app.logger.error('3')
+	now = datetime.now()
 	sender = find('caller', ONEORNONE, phone="%"+number+"%")
-	app.logger.error('4')
 	senderid = sender['id'] if sender else insertR('caller',[None, number, INACTIVE, PREFUNREG, WEEKDAY])
-	app.logger.error('5')
-	insertR('sms',[None, datetime.now(), senderid, None, message_body, SMSIN])
-	app.logger.error('6')
+	insertR('sms',[None, now, senderid, None, message_body, SMSIN])
 	resp = smsdispatch(number, message_body)
-	app.logger.error('7')
+	app.logger.error(resp)
+	insertR('sms',[None, now, senderid, None, resp.message, SMSOUT])	
 	app.logger.info(resp)
-	app.logger.error('end')
 	return str(resp)
 
 @app.route("/textseth", methods=['GET'])
