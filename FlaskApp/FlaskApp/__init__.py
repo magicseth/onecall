@@ -845,7 +845,7 @@ def receive_sms():
 	insertR('sms',[None, now, senderid, None, message_body, SMSIN])
 	resp = smsdispatch(number, message_body)
 	app.logger.error('begin test')
-	app.logger.error([a for a in resp])
+	app.logger.error(resp.message)
 	tree = ET.fromstring(str(resp))
 	app.logger.error(tree.findall('Response/Message/Body'))
 	app.logger.error(tree.findall('Body'))
