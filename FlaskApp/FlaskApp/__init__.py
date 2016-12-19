@@ -125,7 +125,7 @@ createstr = {
 		"id integer PRIMARY KEY AUTOINCREMENT NOT NULL,"\
 		"tstamp timestamp NOT NULL,"\
 		"callerid integer NOT NULL REFERENCES caller(id),"\
-		"campaignid integer NOT NULL REFERENCES campaign(id),"\
+		"campaignid integer REFERENCES campaign(id),"\
 		"content text,"\
 		"status text);",
 }
