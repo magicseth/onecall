@@ -446,11 +446,11 @@ def listTargets(campaign, caller):
 					targets = targets+[{'name':cd['officials'][i]['name'], 'phones':[formatphonenumber(ph) for ph in cd['officials'][i]['phones']], 'office':office}]
 	return targets
 
-def listCampaigns(caller):
+def listCampaigns(clr):
 	"""
 	Takes in a caller, returns a list of campaign dicts that the caller has NOT yet called about, but which are ongoing right now.
 	"""
-	calls = [call['campaignid'] for call in find('call', NULLNONE, callerid=caller['id']) if call['status'] in [CALLCOMPLETED, CALLANSWERED, CALLSETUP]]
+	calls = [call['campaignid'] for call in find('call', NULLNONE, callerid=clr['id']) if call['status'] in [CALLCOMPLETED, CALLANSWERED, CALLSETUP]]
 	return [camp for camp in find('campaign', NULLNONE, id='%%', startdate='< '+str(time()), enddate='> '+str(time())) if camp['id'] not in calls]
 
 def caller(id, nullbehavior=ONLYONE):
@@ -550,7 +550,7 @@ def smsdispatch(smsin):
 	elif content == "history": ### show which calls I've made
 		resp.message("You've made the following calls:\n"+',\n'.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=clr['id'])]))
 	elif content == "call": ### gives you the next call to make
-		campaign = startNextCampaign(caller)
+		campaign = startNextCampaign(clr)
 		if campaign:
 			resp.message("Alright, we're calling you now!")
 		else:
@@ -815,16 +815,16 @@ def findcallers(now=None):
 			text = text + c['phone']+' should call about '+campaign['message']+'<br>'
 	return text
 
-def startNextCampaign(caller):
-	campaign = getNextCampaign(caller)
+def startNextCampaign(clr):
+	campaign = getNextCampaign(clr)
 	if campaign:
-		start_campaign(campaign,caller)
+		start_campaign(campaign,clr)
 	return campaign
 
-def getNextCampaign(caller):
-	campaigns = listCampaigns(caller)
+def getNextCampaign(clr):
+	campaigns = listCampaigns(clr)
 	app.logger.error(campaigns)
-	campsWITHtargets = [camp for camp in campaigns if listTargets(camp,caller)] # ignore any campaigns that don't apply to the current caller
+	campsWITHtargets = [camp for camp in campaigns if listTargets(camp,clr)] # ignore any campaigns that don't apply to the current caller
 	if campsWITHtargets:
 		return chooseCampaign(campsWITHtargets)
 	return None
