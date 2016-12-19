@@ -583,9 +583,6 @@ def text_number(number, message):
 		body=message)
 
 def start_campaign(campaign, caller):
-	# XXXSETH how do we protect our twilio service from being accessed by arbitrary calls to our exposed functions?
-	# XXXSETH this is currently calling me and saying "we are sorry an application error has occured, goodbye"
-	# XXXSETH we need to be careful--this can accidentally be run on dev platform during testing or debug and it will make the actual calls... When live, it will be important to make it only execute calls from the actual live server.
 	client = TwilioRestClient(account_sid, auth_token)
 	call = client.calls.create(
 		to=caller['phone'],  # Any phone number
@@ -886,14 +883,13 @@ def incoming_call():
 @app.route("/callscript", methods=['GET'])
 def callscript():
 	camp = campaign(request.args.get('campaignid'))
-	caller_id = request.args.get('callerid')
+	clr = caller(request.args.get('callerid'))
 	answered_by = request.args.get('AnsweredBy')
 	if answered_by == "machine":
 		resp = twilio.twiml.Response()
 		resp.hangup()
-		callusback(caller_id)
+		callusback(clr)
 		return str(resp)
-	clr = caller(caller_id)
 	return callscript(camp, clr)
 
 def callscript(camp, clr):
@@ -946,16 +942,14 @@ def nextTargetScript():
 @from_twilio()
 def callstatus():
 	status = request.args.get('CallStatus')
-	caller_id = request.args.get('callerid')
+	clr = caller(request.args.get('callerid'))
 	if status in [CALLBUSY, CALLFAILED, CALLCANCELED, CALLNOANSWER]:
 		#failed to connect, let's text them instead.
-		print "call us baq"
-		callusback(caller_id)
+		callusback(clr)
 		pass
 	return "Ok"
 
-def callusback(caller_id):
-	clr = caller(caller_id)
+def callusback(clr):
 	text_caller(clr, "We tried calling you. When you've got 3 minutes, give us a call back, and we'll give you the daily briefing! " + our_number)
 
 @app.route("/logCallEnd", methods=['GET', 'POST'])
@@ -969,7 +963,6 @@ def logCallEnd():
 	resp = twilio.twiml.Response()
 	url="/nexttarget?campaignid=" + campaign_id + "&callerid=" + caller_id + "&target_index=" + str(int(target_index)+1)
 	resp.redirect(url)
-
 	return str(resp)
 
 if __name__ == "__main__":
