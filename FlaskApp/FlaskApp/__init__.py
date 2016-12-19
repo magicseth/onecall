@@ -844,9 +844,9 @@ def receive_sms():
 	senderid = sender['id'] if sender else insertR('caller',[None, number, INACTIVE, PREFUNREG, WEEKDAY])
 	insertR('sms',[None, now, senderid, None, message_body, SMSIN])
 	resp = smsdispatch(number, message_body)
-	app.logger.error(ET.fromstring(str(resp)).find('response/message/body'))
-	for body in ET.fromstring(str(resp)).find('response/message/body'):
-		insertR('sms',[None, now, senderid, None, body, SMSOUT])	
+	app.logger.error(ET.fromstring(str(resp)).findall('Body'))
+	for body in ET.fromstring(str(resp)).findall('Body'):
+		insertR('sms',[None, now, senderid, None, body.text, SMSOUT])	
 	app.logger.info(resp)
 	return str(resp)
 
