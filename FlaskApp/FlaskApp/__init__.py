@@ -472,6 +472,14 @@ def call(id, nullbehavior=ONLYONE):
 	"""
 	return find('call', nullbehavior, id=id)
 
+def sms(id, nullbehavior=ONLYONE):
+	"""
+	Takes an ID, returns a dict object from the corresponding database row
+	Default is ONLYONE: will ERROR if no object found.
+	Set to nullbehavior to ONEORNONE if you want return None instead of erroring
+	"""
+	return find('sms', nullbehavior, id=id)
+
 def campaign(id, nullbehavior=ONLYONE):
 	"""
 	Takes an ID, returns a dict object from the corresponding database row
@@ -519,41 +527,41 @@ def get_original_request_url(request):
 		url = '%s?%s' % (url, qs)
 	return url
 
-def smsdispatch(num, smsin):
-	smsin = smsin.strip().lower()
+def smsdispatch(smsin):
+	content = smsin['content'].strip().lower()
 	resp = twilio.twiml.Response()
-	caller = find('caller',ONEORNONE,phone=num)
+	caller = caller(smsin['callerid'])
 	if caller is None:
 		resp.message("Oops! We can't find this phone in our records. Please go to https://onecall.today to sign up!")
-	elif smsin in["stop", "never"]: ### mark login as inactive
+	elif content in["stop", "never"]: ### mark login as inactive
 		resp.message("Sorry to see you go! You can change your zipcode or call time by using the signup form at https://onecall.today, or start making calls again by replying to this SMS with 'START'")
 		idUpdateFields('caller', caller['id'], active=INACTIVE)
-	elif smsin == "start": ### mark login as active
+	elif content == "start": ### mark login as active
 		resp.message("Welcome back! You can change your zipcode or call time by using the signup form at https://onecall.today, or stop making calls all together by replying to this SMS with 'STOP'")
 		idUpdateFields('caller', caller['id'], active=WEEKDAY)
-	elif smsin == "daily": ### makes you eligible for weekday calls
+	elif content == "daily": ### makes you eligible for weekday calls
 		resp.message("Excellent. You're now signed up for calls every day of the week.")
 		idUpdateFields('caller', caller['id'], active=WEEKDAY)
-	elif smsin == "weekly": ### limits calls to 1 per week
+	elif content == "weekly": ### limits calls to 1 per week
 		resp.message("Excellent. You're now signed up for calls one day a week.")
 		idUpdateFields('caller', caller['id'], active=MONDAY)
-	elif smsin == "list": ### shows all available campaigns for me right now
-		resp.message("Here are your upcoming campaigns: "+', '.join([str(c['id']) for c in listCampaigns(caller)])) # XXX Should add nickname column? message is too long
-	elif smsin == "history": ### show which calls I've made
-		resp.message("You've made the following calls: "+', '.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])]))
-	elif smsin == "call": ### gives you the next call to make
+	elif content == "list": ### shows all available campaigns for me right now
+		resp.message("Here are your upcoming campaigns:\n"+',\n'.join([str(c['id']) for c in listCampaigns(caller)])) # XXX Should add nickname column? message is too long
+	elif content == "history": ### show which calls I've made
+		resp.message("You've made the following calls:\n"+',\n'.join([call['tstamp'].strftime('%Y-%m-%d')+': '+call['targetname'] for call in find('call',NULLNONE, callerid=caller['id'])]))
+	elif content == "call": ### gives you the next call to make
 		campaign = startNextCampaign(caller)
 		if campaign:
 			resp.message("Alright, we're calling you now!")
 		else:
 			resp.message("It seems we don't have any calls for you right now! Thanks for your enthusiasm.")
-	elif smsin == "texts": ### switches you to texts instead of automatic calls
+	elif content == "texts": ### switches you to texts instead of automatic calls
 		resp.message("Good choice. You're now switched over to receive SMS instead of calls.")
 		idUpdateFields('caller', caller['id'], preference=PREFSMS)
-	elif smsin == "calls": ### switches you to calls instead of texts
+	elif content == "calls": ### switches you to calls instead of texts
 		resp.message("Welcome back! You're now switched over to receive calls instead of SMS.")
 		idUpdateFields('caller', caller['id'], preference=PREFCALL)
-	elif smsin == "feedback": ### lets you comment on the system
+	elif content == "feedback": ### lets you comment on the system
 		resp.message("Please send feedback to us via email: improve@onecall.today")
 	else: # Send back list of possible commands
 		resp.message("Reply with one of the capitalized words to change your preference:")
@@ -842,8 +850,8 @@ def receive_sms():
 	now = datetime.now()
 	sender = find('caller', ONEORNONE, phone="%"+number+"%")
 	senderid = sender['id'] if sender else insertR('caller',[None, number, INACTIVE, PREFUNREG, WEEKDAY])
-	insertR('sms',[None, now, senderid, None, message_body, SMSIN])
-	resp = smsdispatch(number, message_body)
+	smsid = insertR('sms',[None, now, senderid, None, message_body, SMSIN])
+	resp = smsdispatch(sms(smsid))
 	for body in ET.fromstring(str(resp)).findall('.//Body'):
 		insertR('sms',[None, now, senderid, None, body.text, SMSOUT])	
 	app.logger.info(resp)
