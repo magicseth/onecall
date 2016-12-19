@@ -846,8 +846,9 @@ def receive_sms():
 	resp = smsdispatch(number, message_body)
 	app.logger.error('?><?><?><?><?><?><?><?><?><?><?><?><')
 	app.logger.error(str(resp))
-	app.logger.error(ET.fromstring(str(resp)).findall('Response/Message/Body'))
-	for body in ET.fromstring(str(resp)).findall('Response/Message/Body'):
+	app.logger.error(ET.fromstring(str(resp)).findall('.//Response/Message/Body'))
+	app.logger.error(ET.fromstring(str(resp)).findall('.//Body'))
+	for body in ET.fromstring(str(resp)).findall('.//Body'):
 		insertR('sms',[None, now, senderid, None, body.text, SMSOUT])	
 	app.logger.info(resp)
 	return str(resp)
