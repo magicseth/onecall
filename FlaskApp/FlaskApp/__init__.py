@@ -836,13 +836,21 @@ def hello_monkey():
 @app.route("/incomingsms", methods=['POST', 'GET'])
 @from_twilio()
 def receive_sms():
+	app.logger.error('begin')
 	number = formatphonenumber(request.form['From'])
+	app.logger.error('2')
 	message_body = request.form['Body']
+	app.logger.error('3')
 	sender = find('caller', ONEORNONE, phone="%"+number+"%")
+	app.logger.error('4')
 	senderid = sender['id'] if sender else insertR('caller',[None, number, INACTIVE, PREFUNREG, WEEKDAY])
+	app.logger.error('5')
 	insertR('sms',[None, datetime.now(), senderid, None, message_body, SMSIN])
+	app.logger.error('6')
 	resp = smsdispatch(number, message_body)
+	app.logger.error('7')
 	app.logger.info(resp)
+	app.logger.error('end')
 	return str(resp)
 
 @app.route("/textseth", methods=['GET'])
