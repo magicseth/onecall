@@ -888,7 +888,7 @@ def callscript():
 	if answered_by == "machine":
 		resp = twilio.twiml.Response()
 		resp.hangup()
-		callusback(clr)
+		# callusback(clr)
 		return str(resp)
 	return callscript(camp, clr)
 
@@ -945,7 +945,7 @@ def callstatus():
 	clr = caller(request.args.get('callerid'))
 	if status in [CALLBUSY, CALLFAILED, CALLCANCELED, CALLNOANSWER]:
 		#failed to connect, let's text them instead.
-		callusback(clr)
+		# callusback(clr)
 		pass
 	return "Ok"
 
