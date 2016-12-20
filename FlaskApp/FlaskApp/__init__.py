@@ -873,7 +873,7 @@ def incoming_call():
 	camp = getNextCampaign(clr)
 	app.logger.error(camp)
 	if camp:
-		return (callscript(camp, clr))
+		return (script(camp, clr))
 	resp = resp = twilio.twiml.Response()
 	resp.say("Thank you for calling OneCall. We have no calls for you right now.")
 	return str(resp)
@@ -890,9 +890,9 @@ def callscript():
 		resp.hangup()
 		# callusback(clr)
 		return str(resp)
-	return callscript(camp, clr)
+	return script(camp, clr)
 
-def callscript(camp, clr):
+def script(camp, clr):
 	caller_id=str(clr['id'])
 	targets = listTargets(camp, clr) # XXXSETH is it possible to connect to the next target (same campaign) if the caller presses '#'?
 	app.logger.info('caller '+str(clr['id'])+' will now call campaign '+str(camp['id'])+' starting with '+targets[0]['name'])
