@@ -451,7 +451,7 @@ def listCampaigns(clr):
 	Takes in a caller, returns a list of campaign dicts that the caller has NOT yet called about, but which are ongoing right now.
 	"""
 	calls = [call['campaignid'] for call in find('call', NULLNONE, callerid=clr['id']) if call['status'] in [CALLCOMPLETED, CALLANSWERED, CALLSETUP]]
-	return [camp for camp in find('campaign', NULLNONE, id='%%', startdate='< '+str(time()), enddate='> '+str(time())) if camp['id'] not in calls]
+	return [camp for camp in find('campaign', NULLNONE, id='%%', startdate='< '+str(time()), enddate='> '+str(time())) if camp['id'] not in calls and camp['callobjective'] > 0]
 
 def caller(id, nullbehavior=ONLYONE):
 	"""
