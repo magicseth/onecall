@@ -801,8 +801,9 @@ def findcallers(now=None):
 	It then finds all the targets for those campaigns
 	Finally, it prints the results to screen (XXX SHOULD execute call instead)
 	"""
+	fake = (now == None) 
 	now = now or datetime.now().replace(hour=13, minute=0)+timedelta(1) # replace is for testing only. Try hour=13 and hour=14 to see two test cases
-	text = str(now)+'<br>'
+	text = str(now)+'<br>' + str(int(time())) + "<br>"
 	callers = []
 	if now.isoweekday() in range(1,6): # weekday
 		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=WEEKDAY) # leading space in string is important!
@@ -810,9 +811,12 @@ def findcallers(now=None):
 		callers = callers+find('caller', NULLNONE, calltime="%"+now.strftime(" %H:%M")+"%", active=MONDAY) # leading space in string is important!
 	print callers
 	for c in callers:
-		campaign = startNextCampaign(c)
+		campaign = getNextCampaign(c)
 		if campaign:
-			text = text + c['phone']+' should call about '+campaign['message']+'<br>'
+			if fake:
+				text = text + c['phone']+' should call about '+campaign['message']+' ' + str(campaign['enddate']) + '<br>' 
+			else:
+				start_campaign(campaign, c)
 	return text
 
 def startNextCampaign(clr):
