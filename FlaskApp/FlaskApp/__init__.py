@@ -718,6 +718,16 @@ def registerNewUser():
 	insertR('caller',[callerid,ph,zc,calltime,WEEKDAY,PREFCALL, None],update=True)
 	return render_template('complete.html')
 
+@app.route('/disableCampaign', methods=['GET', 'POST'])
+@must_login()
+def disableCampaign():
+	""" 
+	This stops an existing campaign from receiving new calls
+	"""
+	campaignid = int(request.args.get('campaignid'))
+	idUpdateFields('campaign', campaignid, callobjective=0)
+	return render_template('complete.html')
+
 @app.route('/registerNewCampaign', methods=['GET', 'POST'])
 @must_login()
 def registerNewCampaign():
