@@ -15,6 +15,8 @@ from oct_local import dir_path, log_path # Add your own log_path like '/Users/jo
 from datetime import datetime, timedelta
 from time import time
 from xml.etree import ElementTree as ET
+from raven.contrib.flask import Sentry
+
 import random
 import csv
 import json
@@ -25,6 +27,7 @@ import sqlite3
 import redis
 import textwrap
 
+
 app = Flask(__name__)
 app.config.from_object(__name__)
 # Load default config and override config from an environment variable
@@ -34,6 +37,8 @@ app.config.update({
 	})
 
 execfile(os.path.join(dir_path, 'SECRETS.py'))
+
+sentry = Sentry(app, dsn=os.environ['SENTRY_DSN'])
 
 use_twilio = True # Switch between live and test deployments
 account_sid = os.environ['TWILIO_SID'] if use_twilio else os.environ['TEST_SID']
